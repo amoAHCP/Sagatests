@@ -203,79 +203,8 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.hotel;
+package org.jacpfx.webflux.saga.trip;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
-@Document(collection = "hotelBooking")
-public class Hotel {
-
-  @Id
-  private String id;
-  @NotBlank
-  @Size(max = 140)
-  private String city;
-  @NotBlank
-  @Size(max = 140)
-  private String hotel;
-  @NotBlank
-  @Size(max = 140)
-  private String transactionId;
-
-
-  public Hotel() {
-  }
-
-  public Hotel(
-      @NotBlank @Size(max = 140) String city,
-      @NotBlank @Size(max = 140) String hotel, @NotBlank @Size(max = 140) String transactionId) {
-    this.city = city;
-    this.hotel = hotel;
-    this.transactionId = transactionId;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  public String getCity() {
-    return city;
-  }
-
-  public void setCity(String city) {
-    this.city = city;
-  }
-
-  public String getHotel() {
-    return hotel;
-  }
-
-  public void setHotel(String hotel) {
-    this.hotel = hotel;
-  }
-
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
-  @Override
-  public String toString() {
-    return "Hotel{" +
-        "id='" + id + '\'' +
-        ", city='" + city + '\'' +
-        ", hotel='" + hotel + '\'' +
-        ", transactionId='" + transactionId + '\'' +
-        '}';
-  }
+public enum SagaStatus {
+  OK,CANCEL_OK,CANCEL_FAIL,ERROR
 }

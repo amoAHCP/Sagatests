@@ -206,6 +206,7 @@
 package org.jacpfx.webflux.saga.hotel;
 
 import java.util.Collections;
+import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.hotel.Hotel;
 import org.jacpfx.webflux.saga.hotel.HotelRepository;
@@ -230,7 +231,7 @@ public class HotelBookApplicationTests {
 
 	@Test
 	public void testCreateHotel() {
-		Hotel hotel = new Hotel("SF","Hilton");
+		Hotel hotel = new Hotel("SF","Hilton", UUID.randomUUID().toString());
 
 		webTestClient.post().uri("/hotel")
 				.contentType(MediaType.APPLICATION_JSON_UTF8)
@@ -246,7 +247,7 @@ public class HotelBookApplicationTests {
 
 	@Test
 	public void testGetSingleHotel() {
-		Hotel hotel = repository.save( new Hotel("SF","Hilton")).block();
+		Hotel hotel = repository.save( new Hotel("SF","Hilton",UUID.randomUUID().toString())).block();
 
 		webTestClient.get()
 				.uri("/hotel/{id}", Collections.singletonMap("id", hotel.getId()))

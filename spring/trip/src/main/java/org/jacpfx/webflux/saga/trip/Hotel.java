@@ -213,24 +213,39 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "hotelBooking")
 public class Hotel {
 
-  @Id
-  private String id;
+  @Id private String id;
+
   @NotBlank
   @Size(max = 140)
   private String city;
+
   @NotBlank
   @Size(max = 140)
   private String hotel;
 
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
-  public Hotel() {
+  public SagaStatus status;
+
+  public Hotel() {}
+
+  public Hotel(@NotBlank @Size(max = 140) String city, @NotBlank @Size(max = 140) String hotel, @NotBlank @Size(max = 140)String transactionId) {
+    this.city = city;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
   }
 
   public Hotel(
       @NotBlank @Size(max = 140) String city,
-      @NotBlank @Size(max = 140) String hotel) {
+      @NotBlank @Size(max = 140) String hotel,
+      @NotBlank @Size(max = 140)String transactionId,
+      SagaStatus status) {
     this.city = city;
     this.hotel = hotel;
+    this.transactionId = transactionId;
+    this.status = status;
   }
 
   public String getId() {
@@ -255,5 +270,32 @@ public class Hotel {
 
   public void setHotel(String hotel) {
     this.hotel = hotel;
+  }
+
+  public SagaStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(SagaStatus status) {
+    this.status = status;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Hotel{" +
+        "id='" + id + '\'' +
+        ", city='" + city + '\'' +
+        ", hotel='" + hotel + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        ", status=" + status +
+        '}';
   }
 }

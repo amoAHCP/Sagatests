@@ -213,24 +213,29 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "flightBooking")
 public class Flight {
 
-  @Id
-  private String id;
+  @Id private String id;
+
   @NotBlank
   @Size(max = 140)
   private String departureTime;
+
   @NotBlank
   @Size(max = 140)
   private String flightCode;
 
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
-  public Flight() {
-  }
+  public Flight() {}
 
   public Flight(
       @NotBlank @Size(max = 140) String departureTime,
-      @NotBlank @Size(max = 140) String flightCode) {
+      @NotBlank @Size(max = 140) String flightCode,
+      @NotBlank @Size(max = 140) String transactionId) {
     this.departureTime = departureTime;
     this.flightCode = flightCode;
+    this.transactionId = transactionId;
   }
 
   public String getId() {
@@ -255,5 +260,31 @@ public class Flight {
 
   public void setFlightCode(String flightCode) {
     this.flightCode = flightCode;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Flight{"
+        + "id='"
+        + id
+        + '\''
+        + ", departureTime='"
+        + departureTime
+        + '\''
+        + ", flightCode='"
+        + flightCode
+        + '\''
+        + ", transactionId='"
+        + transactionId
+        + '\''
+        + '}';
   }
 }

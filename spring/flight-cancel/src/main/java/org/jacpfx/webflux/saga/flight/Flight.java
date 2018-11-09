@@ -221,6 +221,9 @@ public class Flight {
   @NotBlank
   @Size(max = 140)
   private String flightCode;
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
 
   public Flight() {
@@ -228,9 +231,10 @@ public class Flight {
 
   public Flight(
       @NotBlank @Size(max = 140) String departureTime,
-      @NotBlank @Size(max = 140) String flightCode) {
+      @NotBlank @Size(max = 140) String flightCode,@NotBlank @Size(max = 140) String transactionId) {
     this.departureTime = departureTime;
     this.flightCode = flightCode;
+    this.transactionId = transactionId;
   }
 
   public String getId() {
@@ -255,5 +259,13 @@ public class Flight {
 
   public void setFlightCode(String flightCode) {
     this.flightCode = flightCode;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 }

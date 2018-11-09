@@ -206,6 +206,7 @@
 package org.jacpfx.webflux.saga.flight;
 
 import java.util.Collections;
+import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.flight.Flight;
 import org.jacpfx.webflux.saga.flight.FlightRepository;
@@ -231,7 +232,7 @@ public class FlightCancelApplicationTests {
 
 	@Test
 	public void testDeleteSingleFlight() {
-		Flight flight = repository.save( new Flight("2017-10-01","BA286")).block();
+		Flight flight = repository.save( new Flight("2017-10-01","BA286", UUID.randomUUID().toString())).block();
 
 		webTestClient.delete()
 				.uri("/flight/{id}", Collections.singletonMap("id", flight.getId()))

@@ -206,6 +206,7 @@
 package org.jacpfx.webflux.saga.flight;
 
 import java.util.Collections;
+import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -228,12 +229,12 @@ public class FlightBookApplicationTests {
 
 	@Test
 	public void testCreateFlight() {
-		Flight hotel = new Flight("2017-10-01","BA286");
+		Flight flight = new Flight("2017-10-01","BA286", UUID.randomUUID().toString());
 
 		webTestClient.post().uri("/flight")
 				.contentType(MediaType.APPLICATION_JSON_UTF8)
 				.accept(MediaType.APPLICATION_JSON_UTF8)
-				.body(Mono.just(hotel), Flight.class)
+				.body(Mono.just(flight), Flight.class)
 				.exchange()
 				.expectStatus().isOk()
 				.expectHeader().contentType(MediaType.APPLICATION_JSON_UTF8)
@@ -244,7 +245,7 @@ public class FlightBookApplicationTests {
 
 	@Test
 	public void testGetSingleFlight() {
-		Flight flight = repository.save( new Flight("2017-10-01","BA286")).block();
+		Flight flight = repository.save( new Flight("2017-10-01","BA286",UUID.randomUUID().toString())).block();
 
 		webTestClient.get()
 				.uri("/flight/{id}", Collections.singletonMap("id", flight.getId()))

@@ -218,6 +218,9 @@ public class Car {
   @NotBlank
   @Size(max = 140)
   private String model;
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
 
 
@@ -225,8 +228,9 @@ public class Car {
   }
 
   public Car(
-      @NotBlank @Size(max = 140) String model) {
+      @NotBlank @Size(max = 140) String model,@NotBlank @Size(max = 140) String transactionId) {
     this.model = model;
+    this.transactionId = transactionId;
   }
 
   public String getId() {
@@ -243,5 +247,22 @@ public class Car {
 
   public void setModel(String model) {
     this.model = model;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Car{" +
+        "id='" + id + '\'' +
+        ", model='" + model + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        '}';
   }
 }

@@ -221,6 +221,9 @@ public class Hotel {
   @NotBlank
   @Size(max = 140)
   private String hotel;
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
 
   public Hotel() {
@@ -228,9 +231,10 @@ public class Hotel {
 
   public Hotel(
       @NotBlank @Size(max = 140) String city,
-      @NotBlank @Size(max = 140) String hotel) {
+      @NotBlank @Size(max = 140) String hotel, @NotBlank @Size(max = 140) String transactionId) {
     this.city = city;
     this.hotel = hotel;
+    this.transactionId = transactionId;
   }
 
   public String getId() {
@@ -255,5 +259,23 @@ public class Hotel {
 
   public void setHotel(String hotel) {
     this.hotel = hotel;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Hotel{" +
+        "id='" + id + '\'' +
+        ", city='" + city + '\'' +
+        ", hotel='" + hotel + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        '}';
   }
 }

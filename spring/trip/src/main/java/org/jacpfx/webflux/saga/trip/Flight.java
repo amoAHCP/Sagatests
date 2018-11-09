@@ -223,13 +223,31 @@ public class Flight {
   @Size(max = 140)
   private String flightCode;
 
+  public SagaStatus status;
+
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
+
   public Flight() {}
 
   public Flight(
       @NotBlank @Size(max = 140) String departureTime,
-      @NotBlank @Size(max = 140) String flightCode) {
+      @NotBlank @Size(max = 140) String flightCode, @NotBlank @Size(max = 140) String transactionId) {
     this.departureTime = departureTime;
     this.flightCode = flightCode;
+    this.transactionId = transactionId;
+  }
+
+  public Flight(
+      @NotBlank @Size(max = 140) String departureTime,
+      @NotBlank @Size(max = 140) String flightCode,
+      @NotBlank @Size(max = 140) String transactionId,
+      SagaStatus status) {
+    this.departureTime = departureTime;
+    this.flightCode = flightCode;
+    this.transactionId = transactionId;
+    this.status = status;
   }
 
   public String getId() {
@@ -256,14 +274,30 @@ public class Flight {
     this.flightCode = flightCode;
   }
 
-  public String toJson() {
-    return "{"
-        + "departureTime='"
-        + departureTime
-        + '\''
-        + ", flightCode='"
-        + flightCode
-        + '\''
-        + '}';
+  public SagaStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(SagaStatus status) {
+    this.status = status;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Flight{" +
+        "id='" + id + '\'' +
+        ", departureTime='" + departureTime + '\'' +
+        ", flightCode='" + flightCode + '\'' +
+        ", status=" + status +
+        ", transactionId='" + transactionId + '\'' +
+        '}';
   }
 }

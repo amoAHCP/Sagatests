@@ -206,6 +206,7 @@
 package org.jacpfx.webflux.saga.hotel;
 
 import java.util.Collections;
+import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.hotel.Hotel;
 import org.jacpfx.webflux.saga.hotel.HotelRepository;
@@ -231,7 +232,7 @@ public class HotelCancelApplicationTests {
 
 	@Test
 	public void testGetSingleHotel() {
-		Hotel hotel = repository.save( new Hotel("SF","Hilton")).block();
+		Hotel hotel = repository.save( new Hotel("SF","Hilton", UUID.randomUUID().toString())).block();
 
 		webTestClient.delete()
 				.uri("/hotel/{id}", Collections.singletonMap("id", hotel.getId()))

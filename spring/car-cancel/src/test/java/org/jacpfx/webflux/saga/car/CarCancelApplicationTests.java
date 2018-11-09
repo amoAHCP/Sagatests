@@ -206,6 +206,7 @@
 package org.jacpfx.webflux.saga.car;
 
 import java.util.Collections;
+import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -229,7 +230,7 @@ public class CarCancelApplicationTests {
 
 	@Test
 	public void testDeleteSingleCar() {
-		Car car = repository.save( new Car("Tesla Model S P100D")).block();
+		Car car = repository.save( new Car("Tesla Model S P100D", UUID.randomUUID().toString())).block();
 
 		webTestClient.delete()
 				.uri("/car/{id}", Collections.singletonMap("id", car.getId()))

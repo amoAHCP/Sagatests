@@ -217,94 +217,306 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
-import javax.validation.Valid;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
 
-@RestController
-public class TripBookController {
+public class SagaParralelAPITest {
+  Flight flight;
+  Car car;
+  Hotel hotel;
+  String flightCorrectJson;
+  String hotelCorrectJson;
+  String carCorrectJson;
+  HttpClient client;
+  String transactionId;
 
-  HttpClient client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
-// TODO untested!!!
-  @PostMapping("/trip")
-  public Mono<Trip> createBooking(@Valid @RequestBody Trip trip) {
-    String transactionId = UUID.randomUUID().toString();
+  @Before
+  public void setup() throws JsonProcessingException {
+    client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
+    transactionId = UUID.randomUUID().toString();
+    flight = new Flight("2017-10-01", "BA286", transactionId);
+    car = new Car("Tesla Model S P100D", transactionId);
+    hotel = new Hotel("SF", "Hilton", transactionId);
+    flightCorrectJson = new ObjectMapper().writeValueAsString(flight);
+    hotelCorrectJson = new ObjectMapper().writeValueAsString(hotel);
+    carCorrectJson = new ObjectMapper().writeValueAsString(car);
+  }
+
+  @Test
+  @Ignore
+  public void testBasicSuccessCall() throws ExecutionException, InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
     HttpRequest flightRequest =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:8070/flight"))
-            .POST(BodyPublishers.ofString(asString(trip.flight)))
+            .POST(BodyPublishers.ofString(flightCorrectJson))
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
     HttpRequest hotelRequest =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:8090/hotel"))
-            .POST(BodyPublishers.ofString(asString(trip.hotel)))
+            .POST(BodyPublishers.ofString(hotelCorrectJson))
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
     HttpRequest carRequest =
         HttpRequest.newBuilder()
             .uri(URI.create("http://localhost:8060/car"))
-            .POST(BodyPublishers.ofString(asString(trip.car)))
+            .POST(BodyPublishers.ofString(carCorrectJson))
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
-    final CompletableFuture<Trip> tripCompletableFuture =
-        tripSaga(trip, transactionId, flightRequest, hotelRequest, carRequest);
-    return Mono.fromFuture(tripCompletableFuture);
+    Trip myTrip =
+        client
+            .sendAsync(flightRequest, BodyHandlers.ofString())
+            .thenApply(this::checkStatus)
+            .thenApply(HttpResponse::body)
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null))
+            .thenCompose(
+                flight ->
+                    next(
+                        hotelRequest,
+                        hotelResponse ->
+                            new Trip(flight.flight, null, parse(hotelResponse, Hotel.class)),
+                        t->null))
+            .thenCompose(
+                hotel ->
+                    next(
+                        carRequest,
+                        carResponse ->
+                            new Trip(hotel.flight, parse(carResponse, Car.class), hotel.hotel),
+                        t->null))
+            .join();
+    // latch.await();
+    System.out.println(myTrip);
   }
 
-  private CompletableFuture<Trip> tripSaga(Trip trip, String transactionId,
-      HttpRequest flightRequest, HttpRequest hotelRequest, HttpRequest carRequest) {
-    return client
-        .sendAsync(flightRequest, BodyHandlers.ofString())
-        .thenApply(this::checkStatus)
-        .thenApply(HttpResponse::body)
-        .thenApply(val -> new Trip(parse(val, Flight.class), null, null, SagaStatus.OK))
-        .thenCompose(
-            flight ->
-                next(
-                    hotelRequest,
-                    hotelResponse ->
-                        new Trip(
-                            flight.flight,
-                            null,
-                            parse(hotelResponse, Hotel.class),
-                            SagaStatus.OK),
-                    exception -> {
-                      Trip filghtCanceld = cancelFligh(transactionId, trip);
-                      Trip hotelCanceled = cancelHotel(transactionId, trip);
-                      return new Trip(
-                          filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
-                    }))
-        .thenCompose(
-            hotel -> {
-              if (hotel.status.equals(SagaStatus.ERROR))
-                return CompletableFuture.completedFuture(hotel);
-              return next(
-                  carRequest,
-                  carResponse ->
-                      new Trip(
-                          hotel.flight,
-                          parse(carResponse, Car.class),
-                          hotel.hotel,
-                          SagaStatus.OK),
-                  exception -> {
-                    Trip filghtCanceld = cancelFligh(transactionId, trip);
-                    Trip hotelCanceled = cancelHotel(transactionId, trip);
-                    Trip carCanceld = cancelCar(transactionId, trip);
-                    return new Trip(
-                        filghtCanceld.flight,
-                        carCanceld.car,
-                        hotelCanceled.hotel,
-                        SagaStatus.ERROR);
-                  });
-            })
-        .exceptionally(exception -> cancelFligh(transactionId, trip));
+  @Test
+  @Ignore
+  public void testBasicFlightFailsCall() throws ExecutionException, InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
+    HttpRequest flightRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8070/flight"))
+            .POST(BodyPublishers.ofString(flightCorrectJson + "dgdfg"))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest hotelRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8090/hotel"))
+            .POST(BodyPublishers.ofString(hotelCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest carRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8060/car"))
+            .POST(BodyPublishers.ofString(carCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    Trip myTrip =
+        client
+            .sendAsync(flightRequest, BodyHandlers.ofString())
+            .thenApply(this::checkStatus)
+            .thenApply(HttpResponse::body)
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null))
+            .thenCompose(
+                flight ->
+                    next(
+                        hotelRequest,
+                        hotelResponse ->
+                            new Trip(flight.flight, null, parse(hotelResponse, Hotel.class)),
+                        t->null))
+            .thenCompose(
+                hotel ->
+                    next(
+                        carRequest,
+                        carResponse ->
+                            new Trip(hotel.flight, parse(carResponse, Car.class), hotel.hotel),
+                        t->null))
+            .exceptionally(exception -> cancelFligh(transactionId))
+            .join();
+    // latch.await();
+    System.out.println(myTrip);
+  }
+
+  @Test
+  @Ignore
+  public void testBasicHotelFailsCall() throws ExecutionException, InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
+    HttpRequest flightRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8070/flight"))
+            .POST(BodyPublishers.ofString(flightCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest hotelRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8090/hotel"))
+            .POST(BodyPublishers.ofString(hotelCorrectJson + "dgdfg"))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest carRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8060/car"))
+            .POST(BodyPublishers.ofString(carCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    Trip myTrip =
+        client
+            .sendAsync(flightRequest, BodyHandlers.ofString())
+            .thenApply(this::checkStatus)
+            .thenApply(HttpResponse::body)
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, SagaStatus.OK))
+            .thenCompose(
+                flight ->
+                    next(
+                        hotelRequest,
+                        hotelResponse ->
+                            new Trip(
+                                flight.flight,
+                                null,
+                                parse(hotelResponse, Hotel.class),
+                                SagaStatus.OK),
+                        exception -> {
+                          Trip filghtCanceld = cancelFligh(transactionId);
+                          Trip hotelCanceled = cancelHotel(transactionId);
+                          return new Trip(
+                              filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
+                        }))
+            .thenCompose(
+                hotel -> {
+                  if (hotel.status.equals(SagaStatus.ERROR))
+                    return CompletableFuture.completedFuture(hotel);
+                  return next(
+                      carRequest,
+                      carResponse ->
+                          new Trip(
+                              hotel.flight,
+                              parse(carResponse, Car.class),
+                              hotel.hotel,
+                              SagaStatus.OK),
+                      exception -> {
+                        Trip filghtCanceld = cancelFligh(transactionId);
+                        Trip hotelCanceled = cancelHotel(transactionId);
+                        Trip carCanceld = cancelCar(transactionId);
+                        return new Trip(
+                            filghtCanceld.flight,
+                            carCanceld.car,
+                            hotelCanceled.hotel,
+                            SagaStatus.ERROR);
+                      });
+                })
+            .exceptionally(exception -> cancelFligh(transactionId))
+            .join();
+    // latch.await();
+    System.out.println(myTrip);
+  }
+
+  @Test
+  @Ignore
+  public void testBasicCarFailsCall() throws ExecutionException, InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
+    HttpRequest flightRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8070/flight"))
+            .POST(BodyPublishers.ofString(flightCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest hotelRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8090/hotel"))
+            .POST(BodyPublishers.ofString(hotelCorrectJson))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    HttpRequest carRequest =
+        HttpRequest.newBuilder()
+            .uri(URI.create("http://localhost:8060/car"))
+            .POST(BodyPublishers.ofString(carCorrectJson + "dgdfg"))
+            .setHeader("Content-Type", "application/json;charset=UTF-8")
+            .build();
+
+    Trip myTrip =
+        client
+            .sendAsync(flightRequest, BodyHandlers.ofString())
+            .thenApply(this::checkStatus)
+            .thenApply(HttpResponse::body)
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, SagaStatus.OK))
+            .thenCompose(
+                flight ->
+                    next(
+                        hotelRequest,
+                        hotelResponse ->
+                            new Trip(
+                                flight.flight,
+                                null,
+                                parse(hotelResponse, Hotel.class),
+                                SagaStatus.OK),
+                        exception -> {
+                          Trip filghtCanceld = cancelFligh(transactionId);
+                          Trip hotelCanceled = cancelHotel(transactionId);
+                          return new Trip(
+                              filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
+                        }))
+            .thenCompose(
+                hotel -> {
+                  if (hotel.status.equals(SagaStatus.ERROR))
+                    return CompletableFuture.completedFuture(hotel);
+                  return next(
+                      carRequest,
+                      carResponse ->
+                          new Trip(
+                              hotel.flight,
+                              parse(carResponse, Car.class),
+                              hotel.hotel,
+                              SagaStatus.OK),
+                      exception -> {
+                        Trip filghtCanceld = cancelFligh(transactionId);
+                        Trip hotelCanceled = cancelHotel(transactionId);
+                        Trip carCanceld = cancelCar(transactionId);
+                        return new Trip(
+                            filghtCanceld.flight,
+                            carCanceld.car,
+                            hotelCanceled.hotel,
+                            SagaStatus.ERROR);
+                      });
+                })
+            .exceptionally(exception -> cancelFligh(transactionId))
+            .join();
+    // latch.await();
+    System.out.println(myTrip);
+  }
+
+  private Trip cancelFligh(String transactionId) {
+    System.out.println("Cancel flight with trasactionId: " + transactionId);
+    Flight f =
+        new Flight(
+            flight.getFlightCode(), flight.getDepartureTime(), transactionId, SagaStatus.CANCEL_OK);
+    return new Trip(f, null, null, SagaStatus.ERROR);
+  }
+
+  private Trip cancelHotel(String transactionId) {
+    System.out.println("Cancel hotel with trasactionId: " + transactionId);
+    Hotel f = new Hotel(hotel.getCity(), hotel.getHotel(), transactionId, SagaStatus.CANCEL_OK);
+    return new Trip(null, null, f, SagaStatus.ERROR);
+  }
+
+  private Trip cancelCar(String transactionId) {
+    System.out.println("Cancel car with trasactionId: " + transactionId);
+    Car f = new Car(car.getModel(), transactionId, SagaStatus.CANCEL_OK);
+    return new Trip(null, f, null, SagaStatus.ERROR);
   }
 
   private CompletableFuture<Trip> next(
@@ -317,40 +529,13 @@ public class TripBookController {
         .exceptionally(rollback);
   }
 
-  private Trip cancelFligh(String transactionId, Trip trip) {
-    // TODO implement
-    System.out.println("Cancel flight with trasactionId: " + transactionId);
-    Flight f =
-        new Flight(
-            trip.flight.getFlightCode(),
-            trip.flight.getDepartureTime(),
-            transactionId,
-            SagaStatus.CANCEL_OK);
-    return new Trip(f, null, null, SagaStatus.ERROR);
-  }
+  @Test
+  public void apiTest1() {
 
-  private Trip cancelHotel(String transactionId, Trip trip) {
-    // TODO implement
-    System.out.println("Cancel hotel with trasactionId: " + transactionId);
-    Hotel f =
-        new Hotel(trip.hotel.getCity(), trip.hotel.getHotel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, null, f, SagaStatus.ERROR);
-  }
+    // 1: provide a HttpRequest
+    // provide a function, which maps each step to a wrapper
+    // provide an error mapper
 
-  private Trip cancelCar(String transactionId, Trip trip) {
-    // TODO implement
-    System.out.println("Cancel car with trasactionId: " + transactionId);
-    Car f = new Car(trip.car.getModel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, f, null, SagaStatus.ERROR);
-  }
-
-  private String asString(Object object) {
-    try {
-      return new ObjectMapper().writeValueAsString(object);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-    }
-    return "";
   }
 
   private HttpResponse<String> checkStatus(HttpResponse<String> response) {

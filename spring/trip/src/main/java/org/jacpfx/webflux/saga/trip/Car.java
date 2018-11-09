@@ -213,20 +213,29 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Document(collection = "carBooking")
 public class Car {
 
-  @Id
-  private String id;
+  @Id private String id;
+
   @NotBlank
   @Size(max = 140)
   private String model;
 
+  @NotBlank
+  @Size(max = 140)
+  private String transactionId;
 
+  public SagaStatus status;
 
-  public Car() {
+  public Car() {}
+
+  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId) {
+    this.model = model;
+    this.transactionId = transactionId;
   }
 
-  public Car(
-      @NotBlank @Size(max = 140) String model) {
+  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId, SagaStatus status) {
     this.model = model;
+    this.status = status;
+    this.transactionId = transactionId;
   }
 
   public String getId() {
@@ -243,5 +252,31 @@ public class Car {
 
   public void setModel(String model) {
     this.model = model;
+  }
+
+  public SagaStatus getStatus() {
+    return status;
+  }
+
+  public void setStatus(SagaStatus status) {
+    this.status = status;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Car{" +
+        "id='" + id + '\'' +
+        ", model='" + model + '\'' +
+        ", transactionId='" + transactionId + '\'' +
+        ", status=" + status +
+        '}';
   }
 }
