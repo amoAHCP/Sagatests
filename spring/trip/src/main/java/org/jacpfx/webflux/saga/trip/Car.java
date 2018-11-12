@@ -211,7 +211,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "carBooking")
-public class Car {
+public class Car extends Saga{
 
   @Id private String id;
 
@@ -223,7 +223,6 @@ public class Car {
   @Size(max = 140)
   private String transactionId;
 
-  public SagaStatus status;
 
   public Car() {}
 
@@ -254,13 +253,6 @@ public class Car {
     this.model = model;
   }
 
-  public SagaStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(SagaStatus status) {
-    this.status = status;
-  }
 
   public String getTransactionId() {
     return transactionId;

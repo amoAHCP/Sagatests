@@ -205,85 +205,14 @@
 
 package org.jacpfx.webflux.saga.trip;
 
-public class Trip extends Saga{
-  public Car car;
-  public Flight flight;
-  public Hotel hotel;
+public abstract class Saga {
+  public SagaStatus status;
 
-
-
-  public Trip() {
-
+  public SagaStatus getStatus() {
+    return status;
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
-  }
-
-  public Trip(Flight flight,Car car, Hotel hotel, SagaStatus status) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
+  public void setStatus(SagaStatus status) {
     this.status = status;
-  }
-
-  public Trip(Flight flight) {
-    this.car = null;
-    this.flight = flight;
-    this.hotel = null;
-  }
-
-  public Trip(Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = null;
-  }
-
-  public Trip(Hotel hotel) {
-    this.car = null;
-    this.flight = null;
-    this.hotel = hotel;
-  }
-
-  public Trip(Hotel hotel,Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = hotel;
-  }
-
-  public Car getCar() {
-    return car;
-  }
-
-  public void setCar(Car car) {
-    this.car = car;
-  }
-
-  public Flight getFlight() {
-    return flight;
-  }
-
-  public void setFlight(Flight flight) {
-    this.flight = flight;
-  }
-
-  public Hotel getHotel() {
-    return hotel;
-  }
-
-  public void setHotel(Hotel hotel) {
-    this.hotel = hotel;
-  }
-
-  @Override
-  public String toString() {
-    return "Trip{" +
-        "car=" + car +
-        ", flight=" + flight +
-        ", hotel=" + hotel +
-        ", status=" + status +
-        '}';
   }
 }

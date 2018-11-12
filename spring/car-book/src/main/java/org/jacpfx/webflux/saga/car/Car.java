@@ -227,6 +227,8 @@ public class Car {
   public Car() {
   }
 
+
+
   public Car(
       @NotBlank @Size(max = 140) String model,@NotBlank @Size(max = 140) String transactionId) {
     this.model = model;

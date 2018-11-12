@@ -205,85 +205,278 @@
 
 package org.jacpfx.webflux.saga.trip;
 
-public class Trip extends Saga{
-  public Car car;
-  public Flight flight;
-  public Hotel hotel;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpRequest.Builder;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.function.Function;
+import org.junit.Test;
 
+public class TripRESTTest2 {
+  public static final Builder HOTEL_BUILDER =
+      HttpRequest.newBuilder()
+          .uri(URI.create("http://localhost:8090/hotel"))
+          .setHeader("Content-Type", "application/json;charset=UTF-8");
+  public static final Builder CAR_BUILDER =
+      HttpRequest.newBuilder()
+          .uri(URI.create("http://localhost:8060/car"))
+          .setHeader("Content-Type", "application/json;charset=UTF-8");
+  public static final Builder FLIGHT_BUILDER =
+      HttpRequest.newBuilder()
+          .uri(URI.create("http://localhost:8070/flight"))
+          .setHeader("Content-Type", "application/json;charset=UTF-8");
+  private HttpClient client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
 
-  public Trip() {
+  @Test
+  public void httpClientTests() throws InterruptedException, JsonProcessingException {
+    CountDownLatch latch = new CountDownLatch(1);
+    String transactionId = UUID.randomUUID().toString();
 
+    Flight flightValue = new Flight("2017-10-01", "BA286", transactionId);
+    Car carValue = new Car("Tesla Model S P100D", transactionId);
+    Hotel hotelValue = new Hotel("SF", "Hilton", transactionId);
+    Trip trip = new Trip(flightValue, carValue, hotelValue);
+
+    HttpRequest flightRequest =
+        FLIGHT_BUILDER.POST(BodyPublishers.ofString(asString(trip.flight))).build();
+
+    HttpRequest hotelRequest =
+        HOTEL_BUILDER.POST(BodyPublishers.ofString(asString(trip.hotel))).build();
+
+    HttpRequest carRequest = CAR_BUILDER.POST(BodyPublishers.ofString(asString(trip.car))).build();
+    final CompletableFuture<Trip> tripCompletableFuture = tripInvokation(
+        transactionId, trip, flightRequest, hotelRequest, carRequest);
+
+    Trip t = tripCompletableFuture.join();
+    System.out.println("Trip: " + t);
+    assertEquals(t.flight.status, SagaStatus.OK);
+    assertEquals(t.hotel.status, SagaStatus.OK);
+    assertEquals(t.car.status, SagaStatus.OK);
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
+  @Test
+  public void httpFlightFail() throws InterruptedException, JsonProcessingException {
+    String transactionId = UUID.randomUUID().toString();
+
+    Flight flightValue = new Flight("2017-10-01", "BA286", transactionId);
+    Car carValue = new Car("Tesla Model S P100D", transactionId);
+    Hotel hotelValue = new Hotel("SF", "Hilton", transactionId);
+    Trip trip = new Trip(flightValue, carValue, hotelValue);
+
+    HttpRequest flightRequest =
+        FLIGHT_BUILDER.POST(BodyPublishers.ofString(asString(trip.flight) + "dfgdfg")).build();
+
+    HttpRequest hotelRequest =
+        HOTEL_BUILDER.POST(BodyPublishers.ofString(asString(trip.hotel))).build();
+
+    HttpRequest carRequest = CAR_BUILDER.POST(BodyPublishers.ofString(asString(trip.car))).build();
+    final CompletableFuture<Trip> tripCompletableFuture = tripInvokation(
+        transactionId, trip, flightRequest, hotelRequest, carRequest);
+
+    Trip t = tripCompletableFuture.join();
+    System.out.println("Trip: " + t);
+    assertEquals(t.status, SagaStatus.ERROR);
+    assertNotNull(t.flight);
+    assertNull(t.hotel);
+    assertNull(t.car);
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel, SagaStatus status) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
-    this.status = status;
+  @Test
+  public void httpHotelFail() throws InterruptedException, JsonProcessingException {
+    String transactionId = UUID.randomUUID().toString();
+
+    Flight flightValue = new Flight("2017-10-01", "BA286", transactionId);
+    Car carValue = new Car("Tesla Model S P100D", transactionId);
+    Hotel hotelValue = new Hotel("SF", "Hilton", transactionId);
+    Trip trip = new Trip(flightValue, carValue, hotelValue);
+
+    HttpRequest flightRequest =
+        FLIGHT_BUILDER.POST(BodyPublishers.ofString(asString(trip.flight))).build();
+
+    HttpRequest hotelRequest =
+        HOTEL_BUILDER.POST(BodyPublishers.ofString(asString(trip.hotel) + "dfgdfg")).build();
+
+    HttpRequest carRequest = CAR_BUILDER.POST(BodyPublishers.ofString(asString(trip.car))).build();
+    final CompletableFuture<Trip> tripCompletableFuture = tripInvokation(
+        transactionId, trip, flightRequest, hotelRequest, carRequest);
+
+    Trip t = tripCompletableFuture.join();
+    System.out.println("Trip: " + t);
+    assertEquals(t.status, SagaStatus.ERROR);
+    assertNotNull(t.flight);
+    assertNotNull(t.hotel);
+    assertNull(t.car);
   }
 
-  public Trip(Flight flight) {
-    this.car = null;
-    this.flight = flight;
-    this.hotel = null;
+  @Test
+  public void httpCarFail() throws InterruptedException, JsonProcessingException {
+    String transactionId = UUID.randomUUID().toString();
+
+    Flight flightValue = new Flight("2017-10-01", "BA286", transactionId);
+    Car carValue = new Car("Tesla Model S P100D", transactionId);
+    Hotel hotelValue = new Hotel("SF", "Hilton", transactionId);
+    Trip trip = new Trip(flightValue, carValue, hotelValue);
+
+    HttpRequest flightRequest =
+        FLIGHT_BUILDER.POST(BodyPublishers.ofString(asString(trip.flight))).build();
+
+    HttpRequest hotelRequest =
+        HOTEL_BUILDER.POST(BodyPublishers.ofString(asString(trip.hotel))).build();
+
+    HttpRequest carRequest =
+        CAR_BUILDER.POST(BodyPublishers.ofString(asString(trip.car) + "dfgdfg")).build();
+    final CompletableFuture<Trip> tripCompletableFuture = tripInvokation(transactionId, trip,
+        flightRequest, hotelRequest, carRequest);
+
+    Trip t = tripCompletableFuture.join();
+    System.out.println("Trip: " + t);
+    assertEquals(t.status, SagaStatus.ERROR);
+    assertNotNull(t.flight);
+    assertNotNull(t.hotel);
+    assertNotNull(t.car);
   }
 
-  public Trip(Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = null;
+  private CompletableFuture<Trip> tripInvokation(String transactionId, Trip trip,
+      HttpRequest flightRequest, HttpRequest hotelRequest, HttpRequest carRequest) {
+    return invoke(
+        flightRequest,
+        flightResponse -> tripFlightUpdate(flightResponse),
+        exception -> cancelFligh(transactionId, trip))
+        .thenCompose(
+            flight ->
+                next(
+                    flight,
+                    hotelRequest,
+                    hotelResponse -> tripHotelUpdate(flight, hotelResponse),
+                    exception -> rollBackHotelBooking(trip, transactionId)))
+        .thenCompose(
+            hotel ->
+                next(
+                    hotel,
+                    carRequest,
+                    carResponse -> tripCarUpdate(hotel, carResponse),
+                    exception -> rollBackCarBooking(trip, transactionId)));
   }
 
-  public Trip(Hotel hotel) {
-    this.car = null;
-    this.flight = null;
-    this.hotel = hotel;
+  private Trip tripFlightUpdate(String flightResponse) {
+    final Flight flight = parse(flightResponse, Flight.class);
+    flight.status = SagaStatus.OK;
+    return new Trip(flight, null, null, SagaStatus.OK);
   }
 
-  public Trip(Hotel hotel,Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = hotel;
+  private Trip tripHotelUpdate(Trip previous, String hotelResponse) {
+    final Hotel hotel = parse(hotelResponse, Hotel.class);
+    hotel.status = SagaStatus.OK;
+    return new Trip(previous.flight, null, hotel, SagaStatus.OK);
   }
 
-  public Car getCar() {
-    return car;
+  private Trip tripCarUpdate(Trip previous, String carResponse) {
+    final Car car = parse(carResponse, Car.class);
+    car.status = SagaStatus.OK;
+    return new Trip(previous.flight, car, previous.hotel, SagaStatus.OK);
   }
 
-  public void setCar(Car car) {
-    this.car = car;
+  private <T extends Saga> CompletableFuture<T> next(
+      T previouseStep,
+      HttpRequest request,
+      Function<String, T> apply,
+      Function<Throwable, T> rollback) {
+    if (previouseStep.status.equals(SagaStatus.ERROR))
+      return CompletableFuture.completedFuture(previouseStep);
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(apply)
+        .exceptionally(rollback);
   }
 
-  public Flight getFlight() {
-    return flight;
+  private <T extends Saga> CompletableFuture<T> invoke(
+      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(combine)
+        .exceptionally(rollback);
   }
 
-  public void setFlight(Flight flight) {
-    this.flight = flight;
+  private Trip rollBackCarBooking(Trip trip, String transactionId) {
+    Trip filghtCanceld = cancelFligh(transactionId, trip);
+    Trip hotelCanceled = cancelHotel(transactionId, trip);
+    Trip carCanceld = cancelCar(transactionId, trip);
+    return new Trip(filghtCanceld.flight, carCanceld.car, hotelCanceled.hotel, SagaStatus.ERROR);
   }
 
-  public Hotel getHotel() {
-    return hotel;
+  private Trip rollBackHotelBooking(Trip trip, String transactionId) {
+    Trip filghtCanceld = cancelFligh(transactionId, trip);
+    Trip hotelCanceled = cancelHotel(transactionId, trip);
+    return new Trip(filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
   }
 
-  public void setHotel(Hotel hotel) {
-    this.hotel = hotel;
+  private Trip cancelFligh(String transactionId, Trip trip) {
+    // TODO implement
+    System.out.println("Cancel flight with trasactionId: " + transactionId);
+    Flight f =
+        new Flight(
+            trip.flight.getFlightCode(),
+            trip.flight.getDepartureTime(),
+            transactionId,
+            SagaStatus.CANCEL_OK);
+    return new Trip(f, null, null, SagaStatus.ERROR);
   }
 
-  @Override
-  public String toString() {
-    return "Trip{" +
-        "car=" + car +
-        ", flight=" + flight +
-        ", hotel=" + hotel +
-        ", status=" + status +
-        '}';
+  private Trip cancelHotel(String transactionId, Trip trip) {
+    // TODO implement
+    System.out.println("Cancel hotel with trasactionId: " + transactionId);
+    Hotel f =
+        new Hotel(trip.hotel.getCity(), trip.hotel.getHotel(), transactionId, SagaStatus.CANCEL_OK);
+    return new Trip(null, null, f, SagaStatus.ERROR);
+  }
+
+  private Trip cancelCar(String transactionId, Trip trip) {
+    // TODO implement
+    System.out.println("Cancel car with trasactionId: " + transactionId);
+    Car f = new Car(trip.car.getModel(), transactionId, SagaStatus.CANCEL_OK);
+    return new Trip(null, f, null, SagaStatus.ERROR);
+  }
+
+  private String asString(Object object) {
+    try {
+      return new ObjectMapper().writeValueAsString(object);
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
+    return "";
+  }
+
+  private HttpResponse<String> checkStatus(HttpResponse<String> response) {
+    System.out.println(">>> " + response.body());
+    if (response.statusCode() != 200) throw new RuntimeException(response.body());
+    return response;
+  }
+
+  private <T> T parse(String value, Class<T> calzz) {
+    try {
+      return new ObjectMapper().readValue(value, calzz);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    throw new RuntimeException("error in parsing " + calzz);
   }
 }

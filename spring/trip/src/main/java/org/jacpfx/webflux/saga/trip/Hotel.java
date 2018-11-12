@@ -211,7 +211,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "hotelBooking")
-public class Hotel {
+public class Hotel extends Saga {
 
   @Id private String id;
 
@@ -227,11 +227,12 @@ public class Hotel {
   @Size(max = 140)
   private String transactionId;
 
-  public SagaStatus status;
-
   public Hotel() {}
 
-  public Hotel(@NotBlank @Size(max = 140) String city, @NotBlank @Size(max = 140) String hotel, @NotBlank @Size(max = 140)String transactionId) {
+  public Hotel(
+      @NotBlank @Size(max = 140) String city,
+      @NotBlank @Size(max = 140) String hotel,
+      @NotBlank @Size(max = 140) String transactionId) {
     this.city = city;
     this.hotel = hotel;
     this.transactionId = transactionId;
@@ -240,7 +241,7 @@ public class Hotel {
   public Hotel(
       @NotBlank @Size(max = 140) String city,
       @NotBlank @Size(max = 140) String hotel,
-      @NotBlank @Size(max = 140)String transactionId,
+      @NotBlank @Size(max = 140) String transactionId,
       SagaStatus status) {
     this.city = city;
     this.hotel = hotel;
@@ -272,14 +273,6 @@ public class Hotel {
     this.hotel = hotel;
   }
 
-  public SagaStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(SagaStatus status) {
-    this.status = status;
-  }
-
   public String getTransactionId() {
     return transactionId;
   }
@@ -290,12 +283,21 @@ public class Hotel {
 
   @Override
   public String toString() {
-    return "Hotel{" +
-        "id='" + id + '\'' +
-        ", city='" + city + '\'' +
-        ", hotel='" + hotel + '\'' +
-        ", transactionId='" + transactionId + '\'' +
-        ", status=" + status +
-        '}';
+    return "Hotel{"
+        + "id='"
+        + id
+        + '\''
+        + ", city='"
+        + city
+        + '\''
+        + ", hotel='"
+        + hotel
+        + '\''
+        + ", transactionId='"
+        + transactionId
+        + '\''
+        + ", status="
+        + status
+        + '}';
   }
 }

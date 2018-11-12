@@ -225,7 +225,7 @@ public class CarBookController {
   public Mono<ResponseEntity<Car>> getHotelBooking(@PathVariable(value = "id") String carId) {
     return repository
         .findById(carId)
-        .map(savedTweet -> ResponseEntity.ok(savedTweet))
+        .map(car -> ResponseEntity.ok(car))
         .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
