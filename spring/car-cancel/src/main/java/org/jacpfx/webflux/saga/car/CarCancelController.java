@@ -210,6 +210,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -218,11 +219,11 @@ public class CarCancelController {
 
   @Autowired private CarRepository repository;
 
-  @DeleteMapping("/car/{id}")
-  public Mono<ResponseEntity<Void>> cancelCarBooking(@PathVariable(value = "id") String carId) {
-    return repository.findById(carId)
-        .flatMap(existingCar ->
-            repository.delete(existingCar)
+  @PostMapping("/car/{transactionId}")
+  public Mono<ResponseEntity<Void>> deleteCarBooking(@PathVariable(value = "transactionId") String transactionId) {
+    return repository.findByTransactionId(transactionId)
+        .flatMap(existingFlight ->
+            repository.delete(existingFlight)
                 .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)))
         )
         .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));

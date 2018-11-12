@@ -232,10 +232,11 @@ public class FlightCancelApplicationTests {
 
 	@Test
 	public void testDeleteSingleFlight() {
-		Flight flight = repository.save( new Flight("2017-10-01","BA286", UUID.randomUUID().toString())).block();
+		final String transactionId = UUID.randomUUID().toString();
+		Flight flight = repository.save( new Flight("2017-10-01","BA286", transactionId)).block();
 
 		webTestClient.delete()
-				.uri("/flight/{id}", Collections.singletonMap("id", flight.getId()))
+				.uri("/flight/{transactionId}", Collections.singletonMap("transactionId", flight.getTransactionId()))
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()

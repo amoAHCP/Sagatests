@@ -230,10 +230,11 @@ public class CarCancelApplicationTests {
 
 	@Test
 	public void testDeleteSingleCar() {
-		Car car = repository.save( new Car("Tesla Model S P100D", UUID.randomUUID().toString())).block();
+		final String transactionId = UUID.randomUUID().toString();
+		Car car = repository.save( new Car("Tesla Model S P100D", transactionId)).block();
 
 		webTestClient.delete()
-				.uri("/car/{id}", Collections.singletonMap("id", car.getId()))
+				.uri("/car/{transactionId}", Collections.singletonMap("transactionId", car.getTransactionId()))
 				.exchange()
 				.expectStatus().isOk()
 				.expectBody()

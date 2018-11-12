@@ -207,8 +207,11 @@ package org.jacpfx.webflux.saga.hotel;
 
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 public interface HotelRepository extends ReactiveMongoRepository<Hotel,String> {
 
+  Mono<Hotel> findByTransactionId(String transactionId);
 }

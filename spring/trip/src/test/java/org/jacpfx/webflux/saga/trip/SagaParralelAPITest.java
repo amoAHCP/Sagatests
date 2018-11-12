@@ -377,7 +377,7 @@ public class SagaParralelAPITest {
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, SagaStatus.OK))
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, null,SagaStatus.OK))
             .thenCompose(
                 flight ->
                     next(
@@ -387,12 +387,13 @@ public class SagaParralelAPITest {
                                 flight.flight,
                                 null,
                                 parse(hotelResponse, Hotel.class),
+                                null,
                                 SagaStatus.OK),
                         exception -> {
                           Trip filghtCanceld = cancelFligh(transactionId);
                           Trip hotelCanceled = cancelHotel(transactionId);
                           return new Trip(
-                              filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
+                              filghtCanceld.flight, null, hotelCanceled.hotel, null,SagaStatus.ERROR);
                         }))
             .thenCompose(
                 hotel -> {
@@ -405,6 +406,7 @@ public class SagaParralelAPITest {
                               hotel.flight,
                               parse(carResponse, Car.class),
                               hotel.hotel,
+                              null,
                               SagaStatus.OK),
                       exception -> {
                         Trip filghtCanceld = cancelFligh(transactionId);
@@ -414,6 +416,7 @@ public class SagaParralelAPITest {
                             filghtCanceld.flight,
                             carCanceld.car,
                             hotelCanceled.hotel,
+                            null,
                             SagaStatus.ERROR);
                       });
                 })
@@ -453,7 +456,7 @@ public class SagaParralelAPITest {
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, SagaStatus.OK))
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null,null, SagaStatus.OK))
             .thenCompose(
                 flight ->
                     next(
@@ -463,12 +466,13 @@ public class SagaParralelAPITest {
                                 flight.flight,
                                 null,
                                 parse(hotelResponse, Hotel.class),
+                                null,
                                 SagaStatus.OK),
                         exception -> {
                           Trip filghtCanceld = cancelFligh(transactionId);
                           Trip hotelCanceled = cancelHotel(transactionId);
                           return new Trip(
-                              filghtCanceld.flight, null, hotelCanceled.hotel, SagaStatus.ERROR);
+                              filghtCanceld.flight, null, hotelCanceled.hotel, null,SagaStatus.ERROR);
                         }))
             .thenCompose(
                 hotel -> {
@@ -481,6 +485,7 @@ public class SagaParralelAPITest {
                               hotel.flight,
                               parse(carResponse, Car.class),
                               hotel.hotel,
+                              null,
                               SagaStatus.OK),
                       exception -> {
                         Trip filghtCanceld = cancelFligh(transactionId);
@@ -490,6 +495,7 @@ public class SagaParralelAPITest {
                             filghtCanceld.flight,
                             carCanceld.car,
                             hotelCanceled.hotel,
+                            null,
                             SagaStatus.ERROR);
                       });
                 })
@@ -504,19 +510,19 @@ public class SagaParralelAPITest {
     Flight f =
         new Flight(
             flight.getFlightCode(), flight.getDepartureTime(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(f, null, null, SagaStatus.ERROR);
+    return new Trip(f, null, null, null,SagaStatus.ERROR);
   }
 
   private Trip cancelHotel(String transactionId) {
     System.out.println("Cancel hotel with trasactionId: " + transactionId);
     Hotel f = new Hotel(hotel.getCity(), hotel.getHotel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, null, f, SagaStatus.ERROR);
+    return new Trip(null, null, f, null,SagaStatus.ERROR);
   }
 
   private Trip cancelCar(String transactionId) {
     System.out.println("Cancel car with trasactionId: " + transactionId);
     Car f = new Car(car.getModel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, f, null, SagaStatus.ERROR);
+    return new Trip(null, f, null, null,SagaStatus.ERROR);
   }
 
   private CompletableFuture<Trip> next(

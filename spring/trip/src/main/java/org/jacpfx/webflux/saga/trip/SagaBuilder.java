@@ -203,48 +203,61 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.hotel;
+package org.jacpfx.webflux.saga.trip;
 
-import java.util.Collections;
-import java.util.UUID;
-import org.assertj.core.api.Assertions;
-import org.jacpfx.webflux.saga.hotel.Hotel;
-import org.jacpfx.webflux.saga.hotel.HotelRepository;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.reactive.server.WebTestClient;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
-@RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-public class HotelCancelApplicationTests {
+public class SagaBuilder {
+  private HttpClient client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
 
-	@Autowired
-	private WebTestClient webTestClient;
+  public SagaBuilder(HttpClient client) {
+    this.client = client;
+  }
 
-	@Autowired
-	HotelRepository repository;
+  public SagaBuilder() {
+  }
 
+  public static SagaBuilder init() {
+    return new SagaBuilder();
+  }
 
+  public static SagaBuilder init(HttpClient client) {
+    return new SagaBuilder(client);
+  }
+  public  <T extends Saga> CompletableFuture<T> next(
+      T previouseStep,
+      HttpRequest request,
+      Function<String, T> apply,
+      Function<Throwable, T> rollback) {
+    if (previouseStep.status.equals(SagaStatus.ERROR))
+      return CompletableFuture.completedFuture(previouseStep);
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(apply)
+        .exceptionally(rollback);
+  }
 
+  public  <T extends Saga> CompletableFuture<T> invoke(
+      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(combine)
+        .exceptionally(rollback);
+  }
 
-
-
-	@Test
-	public void testDeleteSingleHotel() {
-		final String transactionId = UUID.randomUUID().toString();
-		Hotel hotel = repository.save( new Hotel("SF","Hilton", transactionId)).block();
-
-		webTestClient.delete()
-				.uri("/hotel/{transactionId}", Collections.singletonMap("transactionId", hotel.getTransactionId()))
-				.exchange()
-				.expectStatus().isOk()
-				.expectBody()
-				.consumeWith(response ->
-						Assertions.assertThat(response.getStatus()).isEqualTo(HttpStatus.OK));
-	}
-
+  private HttpResponse<String> checkStatus(HttpResponse<String> response) {
+    System.out.println(">>> " + response.body());
+    if (response.statusCode() != 200) throw new RuntimeException(response.body());
+    return response;
+  }
 }

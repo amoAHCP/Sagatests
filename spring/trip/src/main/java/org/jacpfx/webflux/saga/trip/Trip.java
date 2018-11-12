@@ -209,6 +209,7 @@ public class Trip extends Saga{
   public Car car;
   public Flight flight;
   public Hotel hotel;
+  public String transactionId;
 
 
 
@@ -222,10 +223,11 @@ public class Trip extends Saga{
     this.hotel = hotel;
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel, SagaStatus status) {
+  public Trip(Flight flight,Car car, Hotel hotel, String transactionId, SagaStatus status) {
     this.car = car;
     this.flight = flight;
     this.hotel = hotel;
+    this.transactionId = transactionId;
     this.status = status;
   }
 
