@@ -371,7 +371,7 @@ public class TripRESTTest {
             .sendAsync(hotelRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val2 -> new Trip(parse(val2, Hotel.class), null));
+            .thenApply(val2 -> new Trip(parse(val2, Hotel.class)));
 
     try {
       final CompletableFuture<Trip> flightRequestHandler =
@@ -537,7 +537,7 @@ public class TripRESTTest {
             .sendAsync(hotelRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val2 -> new Trip(parse(val2, Hotel.class), null));
+            .thenApply(val2 -> new Trip(parse(val2, Hotel.class)));
 
     try {
       final CompletableFuture<Trip> flightRequestHandler =
@@ -700,7 +700,7 @@ public class TripRESTTest {
             .sendAsync(hotelRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val2 -> new Trip(parse(val2, Hotel.class), null));
+            .thenApply(val2 -> new Trip(parse(val2, Hotel.class)));
 
     try {
       final CompletableFuture<Trip> flightRequestHandler =
