@@ -211,6 +211,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class SagaBuilder {
@@ -230,19 +231,26 @@ public class SagaBuilder {
   public static SagaBuilder init(HttpClient client) {
     return new SagaBuilder(client);
   }
-  public  <T extends Saga> CompletableFuture<T> next(
+
+
+
+  public  <T extends Saga,U extends Saga> CompletableFuture<T> next(
       T previouseStep,
       HttpRequest request,
-      Function<String, T> apply,
+      BiFunction<String, T,T>  apply,
       Function<Throwable, T> rollback) {
-    if (previouseStep.status.equals(SagaStatus.ERROR))
+    if (previouseStep.getStatus().equals(SagaStatus.ERROR))
       return CompletableFuture.completedFuture(previouseStep);
     return client
         .sendAsync(request, BodyHandlers.ofString())
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
-        .thenApply(apply)
-        .exceptionally(rollback);
+        .thenApply(response -> apply.apply(response,previouseStep))
+        .exceptionally(exception -> {
+          T result = rollback.apply(exception);
+          result.setStatus(SagaStatus.ERROR);
+          return result;
+        });
   }
 
   public  <T extends Saga> CompletableFuture<T> invoke(
@@ -252,7 +260,11 @@ public class SagaBuilder {
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
         .thenApply(combine)
-        .exceptionally(rollback);
+        .exceptionally(exception -> {
+          T result = rollback.apply(exception);
+          result.setStatus(SagaStatus.ERROR);
+          return result;
+        });
   }
 
   private HttpResponse<String> checkStatus(HttpResponse<String> response) {
@@ -260,4 +272,6 @@ public class SagaBuilder {
     if (response.statusCode() != 200) throw new RuntimeException(response.body());
     return response;
   }
+
+
 }

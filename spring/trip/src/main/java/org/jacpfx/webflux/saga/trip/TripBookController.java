@@ -239,7 +239,6 @@ public class TripBookController {
   @Autowired TripBookService service;
   final SagaBuilder saga = SagaBuilder.init();
 
-
   // TODO untested!!!
   @PostMapping("/trip")
   public Mono<Trip> createBooking(@Valid @RequestBody Trip trip) {
@@ -263,25 +262,19 @@ public class TripBookController {
       HttpRequest flightRequest,
       HttpRequest hotelRequest,
       HttpRequest carRequest) {
-
-    return saga.invoke(
-        flightRequest,
-        flightResponse -> service.tripFlightUpdate(transactionId, flightResponse),
-        exception -> service.cancelFligh(trip))
-        .thenCompose(
-            flight ->
-                saga.next(
-                    flight,
-                    hotelRequest,
-                    hotelResponse -> service.tripHotelUpdate(flight, hotelResponse),
-                    exception -> service.rollBackHotelBooking(trip)))
-        .thenCompose(
-            hotel ->
-                saga.next(
-                    hotel,
-                    carRequest,
-                    carResponse -> service.tripCarUpdate(hotel, carResponse),
-                    exception -> service.rollBackCarBooking(trip)));
+    return SagaFluentBuilder.invoke(
+            flightRequest,
+            response -> service.tripFlightUpdate(transactionId, response),
+            exception -> service.cancelFligh(trip))
+        .andThan(
+            hotelRequest,
+            (hotelResponse, flight) -> service.tripHotelUpdate(flight, hotelResponse),
+            exception -> service.rollBackHotelBooking(trip))
+        .andThan(
+            carRequest,
+            (carResponse, hotel) -> service.tripCarUpdate(hotel, carResponse),
+            exception -> service.rollBackCarBooking(trip))
+        .execute();
   }
 
   private String asString(Object object) {

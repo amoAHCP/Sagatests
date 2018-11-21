@@ -397,7 +397,7 @@ public class SagaParralelAPITest {
                         }))
             .thenCompose(
                 hotel -> {
-                  if (hotel.status.equals(SagaStatus.ERROR))
+                  if (hotel.getStatus().equals(SagaStatus.ERROR))
                     return CompletableFuture.completedFuture(hotel);
                   return next(
                       carRequest,
@@ -476,7 +476,7 @@ public class SagaParralelAPITest {
                         }))
             .thenCompose(
                 hotel -> {
-                  if (hotel.status.equals(SagaStatus.ERROR))
+                  if (hotel.getStatus().equals(SagaStatus.ERROR))
                     return CompletableFuture.completedFuture(hotel);
                   return next(
                       carRequest,

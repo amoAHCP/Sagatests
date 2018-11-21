@@ -246,7 +246,7 @@ public class Hotel extends Saga {
     this.city = city;
     this.hotel = hotel;
     this.transactionId = transactionId;
-    this.status = status;
+    setStatus(status);
   }
 
   public String getId() {

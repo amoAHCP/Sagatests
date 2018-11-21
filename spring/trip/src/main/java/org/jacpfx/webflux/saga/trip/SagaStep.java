@@ -205,70 +205,46 @@
 
 package org.jacpfx.webflux.saga.trip;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import java.net.http.HttpRequest;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-@Document(collection = "carBooking")
-public class Car extends Saga{
+public class SagaStep<T extends Saga> {
 
-  @Id private String id;
+  private final HttpRequest request;
+  private final BiFunction<String, T, T> combine;
+  private final Function<String, T> combineFirst;
+  private final Function<Throwable, T> rollback;
 
-  @NotBlank
-  @Size(max = 140)
-  private String model;
-
-  @NotBlank
-  @Size(max = 140)
-  private String transactionId;
-
-
-  public Car() {}
-
-  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId) {
-    this.model = model;
-    this.transactionId = transactionId;
+  public SagaStep(
+      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
+    this.request = request;
+    this.combine = combine;
+    this.rollback = rollback;
+    this.combineFirst = null;
   }
 
-  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId, SagaStatus status) {
-    this.model = model;
-    setStatus(status);
-    this.transactionId = transactionId;
+  public SagaStep(
+      HttpRequest request, Function<String, T> combineFirst, Function<Throwable, T> rollback) {
+    this.request = request;
+    this.combine = null;
+    this.rollback = rollback;
+    this.combineFirst = combineFirst;
   }
 
-  public String getId() {
-    return id;
+  public HttpRequest getRequest() {
+    return request;
   }
 
-  public void setId(String id) {
-    this.id = id;
+  public Function<String, T> getCombineFirst() {
+    return combineFirst;
   }
 
-  public String getModel() {
-    return model;
+  public BiFunction<String, T, T> getCombine() {
+    return combine;
   }
 
-  public void setModel(String model) {
-    this.model = model;
-  }
-
-
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
-  @Override
-  public String toString() {
-    return "Car{" +
-        "id='" + id + '\'' +
-        ", model='" + model + '\'' +
-        ", transactionId='" + transactionId + '\'' +
-        ", status=" + status +
-        '}';
+  public Function<Throwable, T> getRollback() {
+    return rollback;
   }
 }

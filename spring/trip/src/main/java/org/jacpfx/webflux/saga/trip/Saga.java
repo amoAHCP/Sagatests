@@ -206,7 +206,7 @@
 package org.jacpfx.webflux.saga.trip;
 
 public abstract class Saga {
-  public SagaStatus status;
+  protected SagaStatus status;
 
   public SagaStatus getStatus() {
     return status;

@@ -228,7 +228,14 @@ public class Trip extends Saga{
     this.flight = flight;
     this.hotel = hotel;
     this.transactionId = transactionId;
-    this.status = status;
+    setStatus(status);
+  }
+
+  public Trip(Flight flight,Car car, Hotel hotel, String transactionId) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
   }
 
   public Trip(Flight flight) {
@@ -253,6 +260,28 @@ public class Trip extends Saga{
     this.car = car;
     this.flight = null;
     this.hotel = hotel;
+  }
+
+
+  public Trip(Flight flight,Trip previouse) {
+    this.car = previouse.car;
+    this.flight = flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Trip(Car car,Trip previouse) {
+    this.car = car;
+    this.flight = previouse.flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Trip(Hotel hotel,Trip previouse) {
+    this.car = previouse.car;
+    this.flight = previouse.flight;
+    this.hotel = hotel;
+    this.transactionId = previouse.transactionId;
   }
 
   public Car getCar() {

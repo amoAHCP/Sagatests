@@ -472,9 +472,9 @@ public class TripRESTTest {
               .join();
       latch.await();
       System.out.println(tripAll);
-     assertTrue(tripAll.car.status==SagaStatus.CANCEL_OK);
-     assertTrue(tripAll.hotel.status==SagaStatus.CANCEL_OK);
-     assertTrue(tripAll.flight.status==SagaStatus.CANCEL_OK);
+     assertTrue(tripAll.car.getStatus()==SagaStatus.CANCEL_OK);
+     assertTrue(tripAll.hotel.getStatus()==SagaStatus.CANCEL_OK);
+     assertTrue(tripAll.flight.getStatus()==SagaStatus.CANCEL_OK);
 
     } catch (Exception e) {
       System.out.println("meine exception");
@@ -635,9 +635,9 @@ public class TripRESTTest {
                   })
               .join();
       latch.countDown();
-      assertTrue(tripAll.car.status==SagaStatus.CANCEL_OK);
-      assertTrue(tripAll.hotel.status==SagaStatus.CANCEL_OK);
-      assertTrue(tripAll.flight.status==SagaStatus.CANCEL_OK);
+      assertTrue(tripAll.car.getStatus()==SagaStatus.CANCEL_OK);
+      assertTrue(tripAll.hotel.getStatus()==SagaStatus.CANCEL_OK);
+      assertTrue(tripAll.flight.getStatus()==SagaStatus.CANCEL_OK);
 
     } catch (Exception e) {
       System.out.println("meine exception");
@@ -804,7 +804,7 @@ public class TripRESTTest {
               .join();
     //  latch.await();
       System.out.println(tripAll);
-      assertTrue(tripAll.flight.status==SagaStatus.CANCEL_OK);
+      assertTrue(tripAll.flight.getStatus()==SagaStatus.CANCEL_OK);
 
     } catch (Exception e) {
       System.out.println("meine exception");

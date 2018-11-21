@@ -246,7 +246,7 @@ public class Flight extends Saga{
     this.departureTime = departureTime;
     this.flightCode = flightCode;
     this.transactionId = transactionId;
-    this.status = status;
+    setStatus(status);
   }
 
   public String getId() {

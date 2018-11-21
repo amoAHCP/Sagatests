@@ -275,9 +275,9 @@ public class TripRESTTest2 {
 
     Trip t = tripCompletableFuture.join();
     System.out.println("Trip: " + t);
-    assertEquals(t.flight.status, SagaStatus.OK);
-    assertEquals(t.hotel.status, SagaStatus.OK);
-    assertEquals(t.car.status, SagaStatus.OK);
+    assertEquals(t.flight.getStatus(), SagaStatus.OK);
+    assertEquals(t.hotel.getStatus(), SagaStatus.OK);
+    assertEquals(t.car.getStatus(), SagaStatus.OK);
   }
 
   @Test
@@ -301,7 +301,7 @@ public class TripRESTTest2 {
 
     Trip t = tripCompletableFuture.join();
     System.out.println("Trip: " + t);
-    assertEquals(t.status, SagaStatus.ERROR);
+    assertEquals(t.getStatus(), SagaStatus.ERROR);
     assertNotNull(t.flight);
     assertNull(t.hotel);
     assertNull(t.car);
@@ -328,7 +328,7 @@ public class TripRESTTest2 {
 
     Trip t = tripCompletableFuture.join();
     System.out.println("Trip: " + t);
-    assertEquals(t.status, SagaStatus.ERROR);
+    assertEquals(t.getStatus(), SagaStatus.ERROR);
     assertNotNull(t.flight);
     assertNotNull(t.hotel);
     assertNull(t.car);
@@ -356,7 +356,7 @@ public class TripRESTTest2 {
 
     Trip t = tripCompletableFuture.join();
     System.out.println("Trip: " + t);
-    assertEquals(t.status, SagaStatus.ERROR);
+    assertEquals(t.getStatus(), SagaStatus.ERROR);
     assertNotNull(t.flight);
     assertNotNull(t.hotel);
     assertNotNull(t.car);
@@ -378,32 +378,32 @@ public class TripRESTTest2 {
                 saga.next(
                     flight,
                     hotelRequest,
-                    hotelResponse -> tripHotelUpdate(flight, hotelResponse),
+                    (hotelResponse,flightObject) -> tripHotelUpdate(flightObject, hotelResponse),
                     exception -> rollBackHotelBooking(trip)))
         .thenCompose(
             hotel ->
                 saga.next(
                     hotel,
                     carRequest,
-                    carResponse -> tripCarUpdate(hotel, carResponse),
+                    (carResponse,carObject) -> tripCarUpdate(carObject, carResponse),
                     exception -> rollBackCarBooking(trip)));
   }
 
   private Trip tripFlightUpdate(String transactionId, String flightResponse) {
     final Flight flight = parse(flightResponse, Flight.class);
-    flight.status = SagaStatus.OK;
+    flight.setStatus(SagaStatus.OK);
     return new Trip(flight, null, null, transactionId, SagaStatus.OK);
   }
 
   private Trip tripHotelUpdate(Trip previous, String hotelResponse) {
     final Hotel hotel = parse(hotelResponse, Hotel.class);
-    hotel.status = SagaStatus.OK;
+    hotel.setStatus(SagaStatus.OK);
     return new Trip(previous.flight, null, hotel, previous.transactionId, SagaStatus.OK);
   }
 
   private Trip tripCarUpdate(Trip previous, String carResponse) {
     final Car car = parse(carResponse, Car.class);
-    car.status = SagaStatus.OK;
+    car.setStatus(SagaStatus.OK);
     return new Trip(previous.flight, car, previous.hotel, previous.transactionId, SagaStatus.OK);
   }
 
@@ -524,10 +524,10 @@ public class TripRESTTest2 {
       HttpClient client, HttpRequest cancelRequest, Supplier<Trip> ok, Supplier<Trip> fai) {
     try {
       final HttpResponse<String> send = client.send(cancelRequest, ofString());
+      System.out.println(":::::::::::"+send.body().toString());
       if (send.statusCode() == 200 || send.statusCode() == 404) {
         return ok.get();
       } else {
-        System.out.println(send.body().toString());
         return fai.get();
       }
     } catch (IOException e) {
