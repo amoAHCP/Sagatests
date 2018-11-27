@@ -1,8 +1,7 @@
 package org.jacpfx.webflux.saga.trip;
 
-import java.util.Collections;
 import java.util.UUID;
-import org.assertj.core.api.Assertions;
+import org.jacpfx.webflux.saga.trip.model.Car;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;

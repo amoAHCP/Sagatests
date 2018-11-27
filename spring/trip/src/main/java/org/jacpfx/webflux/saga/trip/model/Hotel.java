@@ -203,118 +203,109 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.model;
 
-public class Trip extends Saga{
-  public Car car;
-  public Flight flight;
-  public Hotel hotel;
-  public String transactionId;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+import org.jacpfx.webflux.saga.api.Saga;
+import org.jacpfx.webflux.saga.api.SagaStatus;
 
+// @Document(collection = "hotelBooking")
+public class Hotel extends Saga {
 
+  // @Id
+  private String id;
 
-  public Trip() {
+  @NotBlank
+  @Size(max = 140)
+  private String city;
 
-  }
+  @NotBlank
+  @Size(max = 140)
+  private String hotel;
 
-  public Trip(Flight flight,Car car, Hotel hotel) {
-    this.car = car;
-    this.flight = flight;
+  private String transactionId;
+
+  public Hotel() {}
+
+  public Hotel(
+      @NotBlank @Size(max = 140) String city,
+      @NotBlank @Size(max = 140) String hotel,
+      String transactionId) {
+    this.city = city;
     this.hotel = hotel;
+    this.transactionId = transactionId;
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel, String transactionId, SagaStatus status) {
-    this.car = car;
-    this.flight = flight;
+  public Hotel(
+      Hotel hotel,
+      String transactionId) {
+    this.city = hotel.city;
+    this.hotel = hotel.hotel;
+    setStatus(hotel.status);
+    this.transactionId = transactionId;
+  }
+
+  public Hotel(
+      @NotBlank @Size(max = 140) String city,
+      @NotBlank @Size(max = 140) String hotel,
+      String transactionId,
+      SagaStatus status) {
+    this.city = city;
     this.hotel = hotel;
     this.transactionId = transactionId;
     setStatus(status);
   }
 
-  public Trip(Flight flight,Car car, Hotel hotel, String transactionId) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
-    this.transactionId = transactionId;
+  public String getId() {
+    return id;
   }
 
-  public Trip(Flight flight) {
-    this.car = null;
-    this.flight = flight;
-    this.hotel = null;
+  public void setId(String id) {
+    this.id = id;
   }
 
-  public Trip(Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = null;
+  public String getCity() {
+    return city;
   }
 
-  public Trip(Hotel hotel) {
-    this.car = null;
-    this.flight = null;
-    this.hotel = hotel;
+  public void setCity(String city) {
+    this.city = city;
   }
 
-  public Trip(Hotel hotel,Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = hotel;
-  }
-
-
-  public Trip(Flight flight,Trip previouse) {
-    this.car = previouse.car;
-    this.flight = flight;
-    this.hotel = previouse.hotel;
-    this.transactionId = previouse.transactionId;
-  }
-
-  public Trip(Car car,Trip previouse) {
-    this.car = car;
-    this.flight = previouse.flight;
-    this.hotel = previouse.hotel;
-    this.transactionId = previouse.transactionId;
-  }
-
-  public Trip(Hotel hotel,Trip previouse) {
-    this.car = previouse.car;
-    this.flight = previouse.flight;
-    this.hotel = hotel;
-    this.transactionId = previouse.transactionId;
-  }
-
-  public Car getCar() {
-    return car;
-  }
-
-  public void setCar(Car car) {
-    this.car = car;
-  }
-
-  public Flight getFlight() {
-    return flight;
-  }
-
-  public void setFlight(Flight flight) {
-    this.flight = flight;
-  }
-
-  public Hotel getHotel() {
+  public String getHotel() {
     return hotel;
   }
 
-  public void setHotel(Hotel hotel) {
+  public void setHotel(String hotel) {
     this.hotel = hotel;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 
   @Override
   public String toString() {
-    return "Trip{" +
-        "car=" + car +
-        ", flight=" + flight +
-        ", hotel=" + hotel +
-        ", status=" + status +
-        '}';
+    return "Hotel{"
+        + "id='"
+        + id
+        + '\''
+        + ", city='"
+        + city
+        + '\''
+        + ", hotel='"
+        + hotel
+        + '\''
+        + ", transactionId='"
+        + transactionId
+        + '\''
+        + ", status="
+        + status
+        + '}';
   }
 }

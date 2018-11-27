@@ -207,14 +207,20 @@ package org.jacpfx.webflux.saga.trip;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpRequest.Builder;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import javax.validation.Valid;
+import org.jacpfx.webflux.saga.api.SagaFluentBuilder;
+import org.jacpfx.webflux.saga.trip.model.Car;
+import org.jacpfx.webflux.saga.trip.model.Flight;
+import org.jacpfx.webflux.saga.trip.model.Hotel;
+import org.jacpfx.webflux.saga.trip.model.Trip;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -222,22 +228,23 @@ import reactor.core.publisher.Mono;
 
 @RestController
 public class TripBookController {
-  public static final Builder HOTEL_BUILDER =
-      HttpRequest.newBuilder()
-          .uri(URI.create("http://localhost:8090/hotel"))
-          .setHeader("Content-Type", "application/json;charset=UTF-8");
+  @Qualifier("carBookConnectionBuilder")
+  @Autowired
+  private Builder carBookConnectionBuilder;
 
-  public static final Builder CAR_BUILDER =
-      HttpRequest.newBuilder()
-          .uri(URI.create("http://localhost:8060/car"))
-          .setHeader("Content-Type", "application/json;charset=UTF-8");
+  @Qualifier("hotelBookConnectionBuilder")
+  @Autowired
+  private Builder hotelBookConnectionBuilder;
 
-  public static final Builder FLIGHT_BUILDER =
-      HttpRequest.newBuilder()
-          .uri(URI.create("http://localhost:8070/flight"))
-          .setHeader("Content-Type", "application/json;charset=UTF-8");
-  @Autowired TripBookService service;
-  final SagaBuilder saga = SagaBuilder.init();
+  @Qualifier("flightBookConnectionBuilder")
+  @Autowired
+  private Builder flightBookConnectionBuilder;
+
+  @Autowired private TripBookService service;
+
+  @Qualifier("httpDefaultClient")
+  @Autowired
+  private HttpClient httpClient;
 
   // TODO untested!!!
   @PostMapping("/trip")
@@ -245,12 +252,13 @@ public class TripBookController {
     String transactionId = UUID.randomUUID().toString();
 
     HttpRequest flightRequest =
-        FLIGHT_BUILDER.POST(BodyPublishers.ofString(asString(trip.flight))).build();
+        flightBookConnectionBuilder.POST(BodyPublishers.ofString(asString(new Flight(trip.flight,transactionId)))).build();
 
     HttpRequest hotelRequest =
-        HOTEL_BUILDER.POST(BodyPublishers.ofString(asString(trip.hotel))).build();
+        hotelBookConnectionBuilder.POST(BodyPublishers.ofString(asString(new Hotel(trip.hotel,transactionId)))).build();
 
-    HttpRequest carRequest = CAR_BUILDER.POST(BodyPublishers.ofString(asString(trip.car))).build();
+    HttpRequest carRequest =
+        carBookConnectionBuilder.POST(BodyPublishers.ofString(asString(new Car(trip.car,transactionId)))).build();
 
     return Mono.fromFuture(
         tripInvokation(transactionId, trip, flightRequest, hotelRequest, carRequest));
@@ -263,8 +271,9 @@ public class TripBookController {
       HttpRequest hotelRequest,
       HttpRequest carRequest) {
     return SagaFluentBuilder.invoke(
+        httpClient,
             flightRequest,
-            response -> service.tripFlightUpdate(transactionId, response),
+            flightResponse -> service.tripFlightUpdate(transactionId, flightResponse),
             exception -> service.cancelFligh(trip))
         .andThan(
             hotelRequest,

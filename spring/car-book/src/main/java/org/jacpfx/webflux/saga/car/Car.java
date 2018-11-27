@@ -218,8 +218,8 @@ public class Car {
   @NotBlank
   @Size(max = 140)
   private String model;
-  @NotBlank
-  @Size(max = 140)
+ @NotBlank
+ @Size(max = 140)
   private String transactionId;
 
 

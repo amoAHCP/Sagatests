@@ -203,16 +203,24 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.config;
 
-public abstract class Saga {
-  protected SagaStatus status;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.config.ResourceHandlerRegistry;
+import org.springframework.web.reactive.config.WebFluxConfigurer;
 
-  public SagaStatus getStatus() {
-    return status;
-  }
+@Configuration
+public class WebfluxConfig implements WebFluxConfigurer {
 
-  public void setStatus(SagaStatus status) {
-    this.status = status;
+  @Override
+  public void addResourceHandlers(ResourceHandlerRegistry registry) {
+
+    registry
+        .addResourceHandler("/swagger-ui.html**")
+        .addResourceLocations("classpath:/META-INF/resources/");
+
+    registry
+        .addResourceHandler("/webjars/**")
+        .addResourceLocations("classpath:/META-INF/resources/webjars/");
   }
 }

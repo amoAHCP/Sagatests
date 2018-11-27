@@ -203,72 +203,11 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.api;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
-
-@Document(collection = "carBooking")
-public class Car extends Saga{
-
-  @Id private String id;
-
-  @NotBlank
-  @Size(max = 140)
-  private String model;
-
-  @NotBlank
-  @Size(max = 140)
-  private String transactionId;
-
-
-  public Car() {}
-
-  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId) {
-    this.model = model;
-    this.transactionId = transactionId;
-  }
-
-  public Car(@NotBlank @Size(max = 140) String model, @NotBlank @Size(max = 140) String transactionId, SagaStatus status) {
-    this.model = model;
-    setStatus(status);
-    this.transactionId = transactionId;
-  }
-
-  public String getId() {
-    return id;
-  }
-
-  public void setId(String id) {
-    this.id = id;
-  }
-
-  public String getModel() {
-    return model;
-  }
-
-  public void setModel(String model) {
-    this.model = model;
-  }
-
-
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
-  @Override
-  public String toString() {
-    return "Car{" +
-        "id='" + id + '\'' +
-        ", model='" + model + '\'' +
-        ", transactionId='" + transactionId + '\'' +
-        ", status=" + status +
-        '}';
-  }
+public enum SagaStatus {
+  OK,
+  CANCEL_OK,
+  CANCEL_FAIL,
+  ERROR
 }

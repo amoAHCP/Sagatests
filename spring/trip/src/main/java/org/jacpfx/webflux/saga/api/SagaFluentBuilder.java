@@ -203,93 +203,107 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.api;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-@Document(collection = "flightBooking")
-public class Flight extends Saga{
+public class SagaFluentBuilder<T extends Saga> {
+  private final List<SagaStep<T>> steps;
+  private final HttpClient client;
 
-  @Id private String id;
-
-  @NotBlank
-  @Size(max = 140)
-  private String departureTime;
-
-  @NotBlank
-  @Size(max = 140)
-  private String flightCode;
-
-
-  @NotBlank
-  @Size(max = 140)
-  private String transactionId;
-
-  public Flight() {}
-
-  public Flight(
-      @NotBlank @Size(max = 140) String departureTime,
-      @NotBlank @Size(max = 140) String flightCode, @NotBlank @Size(max = 140) String transactionId) {
-    this.departureTime = departureTime;
-    this.flightCode = flightCode;
-    this.transactionId = transactionId;
+  private SagaFluentBuilder(List<SagaStep<T>> steps, HttpClient client) {
+    this.steps = steps;
+    this.client = client;
   }
 
-  public Flight(
-      @NotBlank @Size(max = 140) String departureTime,
-      @NotBlank @Size(max = 140) String flightCode,
-      @NotBlank @Size(max = 140) String transactionId,
-      SagaStatus status) {
-    this.departureTime = departureTime;
-    this.flightCode = flightCode;
-    this.transactionId = transactionId;
-    setStatus(status);
+  public static <T extends Saga> SagaFluentBuilder<T> invoke(
+      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
+    return new SagaFluentBuilder<>(
+        Collections.singletonList(new SagaStep<>(request, combine, rollback)),
+        HttpClient.newBuilder().version(Version.HTTP_1_1).build());
   }
 
-  public String getId() {
-    return id;
+  public static <T extends Saga> SagaFluentBuilder<T> invoke(
+      HttpClient client,
+      HttpRequest request,
+      Function<String, T> combine,
+      Function<Throwable, T> rollback) {
+    return new SagaFluentBuilder<>(
+        Collections.singletonList(new SagaStep<>(request, combine, rollback)), client);
   }
 
-  public void setId(String id) {
-    this.id = id;
+  public SagaFluentBuilder<T> andThan(
+      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
+    List<SagaStep<T>> mysteps = new ArrayList<>(steps);
+    mysteps.add(new SagaStep<>(request, combine, rollback));
+    return new SagaFluentBuilder<>(mysteps, client);
   }
 
-  public String getDepartureTime() {
-    return departureTime;
+  public CompletableFuture<T> execute() {
+    final SagaStep<T> firstStep = steps.get(0);
+
+    CompletableFuture<T> invoke =
+        invokeStep(firstStep.getRequest(), firstStep.getCombineFirst(), firstStep.getRollback());
+    if (steps.size() > 1) {
+      for (SagaStep<T> step : steps.subList(1, steps.size())) {
+        invoke =
+            invoke.thenCompose(
+                stepResult ->
+                    nextStep(stepResult, step.getRequest(), step.getCombine(), step.getRollback()));
+      }
+    }
+
+    return invoke;
   }
 
-  public void setDepartureTime(String departureTime) {
-    this.departureTime = departureTime;
+  public CompletableFuture<T> nextStep(
+      T previouseStep,
+      HttpRequest request,
+      BiFunction<String, T, T> apply,
+      Function<Throwable, T> rollback) {
+    if (previouseStep.getStatus().equals(SagaStatus.ERROR))
+      return CompletableFuture.completedFuture(previouseStep);
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(response -> apply.apply(response, previouseStep))
+        .exceptionally(
+            exception -> {
+              T result = rollback.apply(exception);
+              result.setStatus(SagaStatus.ERROR);
+              return result;
+            });
   }
 
-  public String getFlightCode() {
-    return flightCode;
+  public CompletableFuture<T> invokeStep(
+      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
+    return client
+        .sendAsync(request, BodyHandlers.ofString())
+        .thenApply(this::checkStatus)
+        .thenApply(HttpResponse::body)
+        .thenApply(combine)
+        .exceptionally(
+            exception -> {
+              T result = rollback.apply(exception);
+              result.setStatus(SagaStatus.ERROR);
+              return result;
+            });
   }
 
-  public void setFlightCode(String flightCode) {
-    this.flightCode = flightCode;
-  }
-
-
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
-  @Override
-  public String toString() {
-    return "Flight{" +
-        "id='" + id + '\'' +
-        ", departureTime='" + departureTime + '\'' +
-        ", flightCode='" + flightCode + '\'' +
-        ", status=" + status +
-        ", transactionId='" + transactionId + '\'' +
-        '}';
+  private HttpResponse<String> checkStatus(HttpResponse<String> response) {
+    System.out.println(">>> " + response.body());
+    if (response.statusCode() != 200) throw new RuntimeException(response.body());
+    return response;
   }
 }

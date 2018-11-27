@@ -203,75 +203,48 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.api;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class SagaBuilder {
-  private HttpClient client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
+public class SagaStep<T extends Saga> {
 
-  public SagaBuilder(HttpClient client) {
-    this.client = client;
+  private final HttpRequest request;
+  private final BiFunction<String, T, T> combine;
+  private final Function<String, T> combineFirst;
+  private final Function<Throwable, T> rollback;
+
+  public SagaStep(
+      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
+    this.request = request;
+    this.combine = combine;
+    this.rollback = rollback;
+    this.combineFirst = null;
   }
 
-  public SagaBuilder() {
+  public SagaStep(
+      HttpRequest request, Function<String, T> combineFirst, Function<Throwable, T> rollback) {
+    this.request = request;
+    this.combine = null;
+    this.rollback = rollback;
+    this.combineFirst = combineFirst;
   }
 
-  public static SagaBuilder init() {
-    return new SagaBuilder();
+  public HttpRequest getRequest() {
+    return request;
   }
 
-  public static SagaBuilder init(HttpClient client) {
-    return new SagaBuilder(client);
+  public Function<String, T> getCombineFirst() {
+    return combineFirst;
   }
 
-
-
-  public  <T extends Saga,U extends Saga> CompletableFuture<T> next(
-      T previouseStep,
-      HttpRequest request,
-      BiFunction<String, T,T>  apply,
-      Function<Throwable, T> rollback) {
-    if (previouseStep.getStatus().equals(SagaStatus.ERROR))
-      return CompletableFuture.completedFuture(previouseStep);
-    return client
-        .sendAsync(request, BodyHandlers.ofString())
-        .thenApply(this::checkStatus)
-        .thenApply(HttpResponse::body)
-        .thenApply(response -> apply.apply(response,previouseStep))
-        .exceptionally(exception -> {
-          T result = rollback.apply(exception);
-          result.setStatus(SagaStatus.ERROR);
-          return result;
-        });
+  public BiFunction<String, T, T> getCombine() {
+    return combine;
   }
 
-  public  <T extends Saga> CompletableFuture<T> invoke(
-      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
-    return client
-        .sendAsync(request, BodyHandlers.ofString())
-        .thenApply(this::checkStatus)
-        .thenApply(HttpResponse::body)
-        .thenApply(combine)
-        .exceptionally(exception -> {
-          T result = rollback.apply(exception);
-          result.setStatus(SagaStatus.ERROR);
-          return result;
-        });
+  public Function<Throwable, T> getRollback() {
+    return rollback;
   }
-
-  private HttpResponse<String> checkStatus(HttpResponse<String> response) {
-    System.out.println(">>> " + response.body());
-    if (response.statusCode() != 200) throw new RuntimeException(response.body());
-    return response;
-  }
-
-
 }

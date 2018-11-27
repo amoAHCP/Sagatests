@@ -220,6 +220,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import org.jacpfx.webflux.saga.api.SagaStatus;
+import org.jacpfx.webflux.saga.trip.model.Car;
+import org.jacpfx.webflux.saga.trip.model.Flight;
+import org.jacpfx.webflux.saga.trip.model.Hotel;
+import org.jacpfx.webflux.saga.trip.model.Trip;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -377,7 +382,7 @@ public class SagaParralelAPITest {
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, null,SagaStatus.OK))
+            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, null, SagaStatus.OK))
             .thenCompose(
                 flight ->
                     next(

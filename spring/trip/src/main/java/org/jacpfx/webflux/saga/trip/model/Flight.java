@@ -203,173 +203,109 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.model;
 
-import static java.net.http.HttpResponse.BodyHandlers.ofString;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Version;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpRequest.Builder;
-import java.net.http.HttpResponse;
-import java.util.function.Supplier;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+import org.jacpfx.webflux.saga.api.Saga;
 import org.jacpfx.webflux.saga.api.SagaStatus;
-import org.jacpfx.webflux.saga.trip.model.Car;
-import org.jacpfx.webflux.saga.trip.model.Flight;
-import org.jacpfx.webflux.saga.trip.model.Hotel;
-import org.jacpfx.webflux.saga.trip.model.Trip;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Service;
 
-@Service
+// @Document(collection = "flightBooking")
+public class Flight extends Saga {
 
-public class TripBookService {
+  // @Id
+  private String id;
 
-  @Qualifier("carCancelConnectionBuilder")
-  @Autowired
-  private Builder carCancelConnectionBuilder;
+  @NotBlank
+  @Size(max = 140)
+  private String departureTime;
 
-  @Qualifier("hotelCancelConnectionBuilder")
-  @Autowired
-  private Builder hotelCancelConnectionBuilder;
+  @NotBlank
+  @Size(max = 140)
+  private String flightCode;
 
-  @Qualifier("flightCancelConnectionBuilder")
-  @Autowired
-  private Builder flightCancelConnectionBuilder;
+  private String transactionId;
 
-  @Qualifier("httpDefaultClient")
-  @Autowired
-  private HttpClient httpDefaultClient;
+  public Flight() {}
 
-  public Trip tripFlightUpdate(String transactionId, String flightResponse) {
-    final Flight flight = parse(flightResponse, Flight.class);
-    flight.setStatus(SagaStatus.OK);
-    return new Trip(flight, null, null, transactionId, SagaStatus.OK);
+  public Flight(
+      @NotBlank @Size(max = 140) String departureTime,
+      @NotBlank @Size(max = 140) String flightCode,
+      String transactionId) {
+    this.departureTime = departureTime;
+    this.flightCode = flightCode;
+    this.transactionId = transactionId;
   }
 
-  public Trip tripHotelUpdate(Trip previous, String hotelResponse) {
-    final Hotel hotel = parse(hotelResponse, Hotel.class);
-    hotel.setStatus(SagaStatus.OK);
-    return new Trip(previous.flight, null, hotel, previous.transactionId, SagaStatus.OK);
+  public Flight(
+      Flight flight,
+      String transactionId) {
+    this.departureTime = flight.departureTime;
+    this.flightCode = flight.flightCode;
+    this.transactionId = transactionId;
+    setStatus(flight.status);
   }
 
-  public Trip tripCarUpdate(Trip previous, String carResponse) {
-    final Car car = parse(carResponse, Car.class);
-    car.setStatus(SagaStatus.OK);
-    return new Trip(previous.flight, car, previous.hotel, previous.transactionId, SagaStatus.OK);
+  public Flight(
+      @NotBlank @Size(max = 140) String departureTime,
+      @NotBlank @Size(max = 140) String flightCode,
+      String transactionId,
+      SagaStatus status) {
+    this.departureTime = departureTime;
+    this.flightCode = flightCode;
+    this.transactionId = transactionId;
+    setStatus(status);
   }
 
-  public Trip rollBackCarBooking(Trip trip) {
-    Trip filghtCanceld = cancelFligh(trip);
-    Trip hotelCanceled = cancelHotel(trip);
-    Trip carCanceld = cancelCar(trip);
-    return new Trip(
-        filghtCanceld.flight,
-        carCanceld.car,
-        hotelCanceled.hotel,
-        trip.transactionId,
-        SagaStatus.ERROR);
+  public String getId() {
+    return id;
   }
 
-  public Trip rollBackHotelBooking(Trip trip) {
-    Trip filghtCanceld = cancelFligh(trip);
-    Trip hotelCanceled = cancelHotel(trip);
-    return new Trip(
-        filghtCanceld.flight, null, hotelCanceled.hotel, trip.transactionId, SagaStatus.ERROR);
+  public void setId(String id) {
+    this.id = id;
   }
 
-  public Trip cancelFligh(Trip trip) {
-    System.out.println("Cancel flight with trasactionId: " + trip.transactionId);
-
-    final HttpRequest cancelRequest =
-        flightCancelConnectionBuilder.POST(BodyPublishers.ofString(trip.transactionId)).build();
-    return handleCancelRequest(
-        cancelRequest,
-        () ->
-            new Trip(
-                new Flight(
-                    trip.flight.getFlightCode(),
-                    trip.flight.getDepartureTime(),
-                    trip.transactionId,
-                    SagaStatus.CANCEL_OK),
-                trip),
-        () ->
-            new Trip(
-                new Flight(
-                    trip.flight.getFlightCode(),
-                    trip.flight.getDepartureTime(),
-                    trip.transactionId,
-                    SagaStatus.CANCEL_FAIL),
-                trip));
+  public String getDepartureTime() {
+    return departureTime;
   }
 
-  public Trip cancelHotel(Trip trip) {
-    System.out.println("Cancel hotel with trasactionId: " + trip.transactionId);
-    final HttpRequest cancelRequest =
-        hotelCancelConnectionBuilder.POST(BodyPublishers.ofString(trip.transactionId)).build();
-    return handleCancelRequest(
-        cancelRequest,
-        () ->
-            new Trip(
-                new Hotel(
-                    trip.hotel.getCity(),
-                    trip.hotel.getHotel(),
-                    trip.transactionId,
-                    SagaStatus.CANCEL_OK),
-                trip),
-        () ->
-            new Trip(
-                new Hotel(
-                    trip.hotel.getCity(),
-                    trip.hotel.getHotel(),
-                    trip.transactionId,
-                    SagaStatus.CANCEL_FAIL),
-                trip));
+  public void setDepartureTime(String departureTime) {
+    this.departureTime = departureTime;
   }
 
-  public Trip cancelCar(Trip trip) {
-    System.out.println("Cancel car with trasactionId: " + trip.transactionId);
-    final HttpRequest cancelRequest =
-        carCancelConnectionBuilder.POST(BodyPublishers.ofString(trip.transactionId)).build();
-    return handleCancelRequest(
-        cancelRequest,
-        () ->
-            new Trip(new Car(trip.car.getModel(), trip.transactionId, SagaStatus.CANCEL_OK), trip),
-        () ->
-            new Trip(
-                new Car(trip.car.getModel(), trip.transactionId, SagaStatus.CANCEL_FAIL), trip));
+  public String getFlightCode() {
+    return flightCode;
   }
 
-  // TODO make HttpResponse.BodyHandler<T> responseBodyHandler parameter and change Supplier to
-  // function, to allow to evaluate response
-  private Trip handleCancelRequest( HttpRequest cancelRequest, Supplier<Trip> ok, Supplier<Trip> fai) {
-    try {
-      final HttpResponse<String> cancelResponse = httpDefaultClient
-          .send(cancelRequest, ofString());
-      if (cancelResponse.statusCode() == 200) {
-        return ok.get();
-      } else {
-        return fai.get();
-      }
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-      return fai.get();
-    }
+  public void setFlightCode(String flightCode) {
+    this.flightCode = flightCode;
   }
 
-  private <T> T parse(String value, Class<T> calzz) {
-    try {
-      return new ObjectMapper().readValue(value, calzz);
-    } catch (IOException e) {
-      e.printStackTrace();
-    }
+  public String getTransactionId() {
+    return transactionId;
+  }
 
-    throw new RuntimeException("error in parsing " + calzz);
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "Flight{"
+        + "id='"
+        + id
+        + '\''
+        + ", departureTime='"
+        + departureTime
+        + '\''
+        + ", flightCode='"
+        + flightCode
+        + '\''
+        + ", status="
+        + status
+        + ", transactionId='"
+        + transactionId
+        + '\''
+        + '}';
   }
 }

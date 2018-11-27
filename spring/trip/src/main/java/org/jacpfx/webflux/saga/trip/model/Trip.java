@@ -203,8 +203,120 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.model;
 
-public enum SagaStatus {
-  OK,CANCEL_OK,CANCEL_FAIL,ERROR
+import org.jacpfx.webflux.saga.api.SagaStatus;
+import org.jacpfx.webflux.saga.api.Saga;
+
+public class Trip extends Saga {
+  public Car car;
+  public Flight flight;
+  public Hotel hotel;
+  public String transactionId;
+
+  public Trip() {}
+
+  public Trip(Flight flight, Car car, Hotel hotel) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+  }
+
+  public Trip(Flight flight, Car car, Hotel hotel, String transactionId, SagaStatus status) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
+    setStatus(status);
+  }
+
+  public Trip(Flight flight, Car car, Hotel hotel, String transactionId) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
+  }
+
+  public Trip(Flight flight) {
+    this.car = null;
+    this.flight = flight;
+    this.hotel = null;
+  }
+
+  public Trip(Car car) {
+    this.car = car;
+    this.flight = null;
+    this.hotel = null;
+  }
+
+  public Trip(Hotel hotel) {
+    this.car = null;
+    this.flight = null;
+    this.hotel = hotel;
+  }
+
+  public Trip(Hotel hotel, Car car) {
+    this.car = car;
+    this.flight = null;
+    this.hotel = hotel;
+  }
+
+  public Trip(Flight flight, Trip previouse) {
+    this.car = previouse.car;
+    this.flight = flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Trip(Car car, Trip previouse) {
+    this.car = car;
+    this.flight = previouse.flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Trip(Hotel hotel, Trip previouse) {
+    this.car = previouse.car;
+    this.flight = previouse.flight;
+    this.hotel = hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Car getCar() {
+    return car;
+  }
+
+  public void setCar(Car car) {
+    this.car = car;
+  }
+
+  public Flight getFlight() {
+    return flight;
+  }
+
+  public void setFlight(Flight flight) {
+    this.flight = flight;
+  }
+
+  public Hotel getHotel() {
+    return hotel;
+  }
+
+  public void setHotel(Hotel hotel) {
+    this.hotel = hotel;
+  }
+
+  @Override
+  public String toString() {
+    return "Trip{"
+        + "car="
+        + car
+        + ", flight="
+        + flight
+        + ", hotel="
+        + hotel
+        + ", status="
+        + status
+        + '}';
+  }
 }

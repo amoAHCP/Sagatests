@@ -203,48 +203,94 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.config;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
-import java.util.function.BiFunction;
-import java.util.function.Function;
+import java.net.http.HttpRequest.Builder;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-public class SagaStep<T extends Saga> {
+@Configuration
+public class ConnectionConfig {
 
-  private final HttpRequest request;
-  private final BiFunction<String, T, T> combine;
-  private final Function<String, T> combineFirst;
-  private final Function<Throwable, T> rollback;
+  @Value("${trip.flight.bookURL}")
+  private String flightBookURL;
 
-  public SagaStep(
-      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
-    this.request = request;
-    this.combine = combine;
-    this.rollback = rollback;
-    this.combineFirst = null;
+
+  @Value("${trip.hotel.bookURL}")
+  private String hotelBookURL;
+
+  @Value("${trip.car.bookURL}")
+  private String carBookURL;
+
+
+  @Value("${trip.flight.cancelURL}")
+  private String flightCancelURL;
+
+
+  @Value("${trip.hotel.cancelURL}")
+  private String hotelCancelURL;
+
+  @Value("${trip.car.cancelURL}")
+  private String carCancelURL;
+
+  @Bean
+  @Qualifier("flightBookConnectionBuilder")
+  public Builder flightBookConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(flightBookURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-  public SagaStep(
-      HttpRequest request, Function<String, T> combineFirst, Function<Throwable, T> rollback) {
-    this.request = request;
-    this.combine = null;
-    this.rollback = rollback;
-    this.combineFirst = combineFirst;
+  @Bean
+  @Qualifier("flightCancelConnectionBuilder")
+  public Builder flightCancelConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(flightCancelURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-  public HttpRequest getRequest() {
-    return request;
+  @Bean
+  @Qualifier("carBookConnectionBuilder")
+  public Builder carBookConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(carBookURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-  public Function<String, T> getCombineFirst() {
-    return combineFirst;
+
+  @Bean
+  @Qualifier("carCancelConnectionBuilder")
+  public Builder carCancelConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(carCancelURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-  public BiFunction<String, T, T> getCombine() {
-    return combine;
+  @Bean
+  @Qualifier("hotelBookConnectionBuilder")
+  public Builder hotelBookConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(hotelBookURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-  public Function<Throwable, T> getRollback() {
-    return rollback;
+  @Bean
+  @Qualifier("hotelCancelConnectionBuilder")
+  public Builder hotelCancelConnectionBuilder() {
+    return HttpRequest.newBuilder()
+        .uri(URI.create(hotelCancelURL))
+        .setHeader("Content-Type", "application/json;charset=UTF-8");
+  }
+
+  @Bean
+  @Qualifier("httpDefaultClient")
+  public HttpClient httpDefaultClient(){
+    return  HttpClient.newBuilder().version(Version.HTTP_1_1).build();
   }
 }

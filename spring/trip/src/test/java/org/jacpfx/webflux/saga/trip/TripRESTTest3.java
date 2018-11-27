@@ -224,11 +224,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Supplier;
+import org.jacpfx.webflux.saga.api.SagaFluentBuilder;
+import org.jacpfx.webflux.saga.api.SagaStatus;
+import org.jacpfx.webflux.saga.trip.model.Car;
+import org.jacpfx.webflux.saga.trip.model.Flight;
+import org.jacpfx.webflux.saga.trip.model.Hotel;
+import org.jacpfx.webflux.saga.trip.model.Trip;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TripRESTTest3 {
 
-  final SagaBuilder saga = SagaBuilder.init();
   public static final Builder HOTEL_BUILDER =
       HttpRequest.newBuilder()
           .uri(URI.create("http://localhost:8090/hotel"))
@@ -281,6 +287,7 @@ public class TripRESTTest3 {
   }
 
   @Test
+  @Ignore
   public void httpFlightFail() throws InterruptedException, JsonProcessingException {
     String transactionId = UUID.randomUUID().toString();
 
@@ -308,6 +315,7 @@ public class TripRESTTest3 {
   }
 
   @Test
+  @Ignore
   public void httpHotelFail() throws InterruptedException, JsonProcessingException {
     String transactionId = UUID.randomUUID().toString();
 
@@ -335,6 +343,7 @@ public class TripRESTTest3 {
   }
 
   @Test
+  @Ignore
   public void httpCarFail() throws InterruptedException, JsonProcessingException {
     String transactionId = UUID.randomUUID().toString();
 
