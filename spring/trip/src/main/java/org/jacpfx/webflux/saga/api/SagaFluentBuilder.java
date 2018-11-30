@@ -213,96 +213,132 @@ import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class SagaFluentBuilder<T extends Saga> {
   private final List<SagaStep<T>> steps;
-  private final HttpClient client;
+  private HttpClient client;
 
-  private SagaFluentBuilder(List<SagaStep<T>> steps, HttpClient client) {
+  private SagaFluentBuilder(List<SagaStep<T>> steps) {
     this.steps = steps;
-    this.client = client;
   }
 
   public static <T extends Saga> SagaFluentBuilder<T> invoke(
-      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
-    return new SagaFluentBuilder<>(
-        Collections.singletonList(new SagaStep<>(request, combine, rollback)),
-        HttpClient.newBuilder().version(Version.HTTP_1_1).build());
-  }
-
-  public static <T extends Saga> SagaFluentBuilder<T> invoke(
-      HttpClient client,
       HttpRequest request,
-      Function<String, T> combine,
-      Function<Throwable, T> rollback) {
+      String transactionId,
+      BiFunction<String, String, T> combine,
+      BiFunction<Throwable, String, T> rollback) {
     return new SagaFluentBuilder<>(
-        Collections.singletonList(new SagaStep<>(request, combine, rollback)), client);
+        Collections.singletonList(new SagaStep<>(request, transactionId, combine, rollback)));
   }
 
   public SagaFluentBuilder<T> andThan(
-      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
+      HttpRequest request,
+      BiFunction<String, T, T> combine,
+      BiFunction<Throwable, String, T> rollback) {
     List<SagaStep<T>> mysteps = new ArrayList<>(steps);
     mysteps.add(new SagaStep<>(request, combine, rollback));
-    return new SagaFluentBuilder<>(mysteps, client);
+    return new SagaFluentBuilder<>(mysteps);
   }
 
   public CompletableFuture<T> execute() {
+    return execute(HttpClient.newBuilder().version(Version.HTTP_1_1).build());
+  }
+
+  public CompletableFuture<T> execute(HttpClient client) {
+    this.client = client;
     final SagaStep<T> firstStep = steps.get(0);
 
+    final String transactionId = firstStep.getTransactionId();
     CompletableFuture<T> invoke =
-        invokeStep(firstStep.getRequest(), firstStep.getCombineFirst(), firstStep.getRollback());
+        invokeStep(
+            firstStep.getRequest(),
+            transactionId,
+            firstStep.getCombineFirst(),
+            firstStep.getRollback());
     if (steps.size() > 1) {
       for (SagaStep<T> step : steps.subList(1, steps.size())) {
         invoke =
-            invoke.thenCompose(
-                stepResult ->
-                    nextStep(stepResult, step.getRequest(), step.getCombine(), step.getRollback()));
+            invoke
+                .thenCompose(
+                    stepResult ->
+                        nextStep(
+                            stepResult,
+                            step.getRequest(),
+                            transactionId,
+                            step.getCombine(),
+                            step.getRollback()))
+                .exceptionally(
+                    exception -> handleExecutionError(transactionId, steps, step, exception));
       }
     }
 
     return invoke;
   }
 
-  public CompletableFuture<T> nextStep(
+  private T handleExecutionError(
+      String transactionId, List<SagaStep<T>> steps, SagaStep<T> currentStep, Throwable exception) {
+    int currentIndex = steps.indexOf(currentStep);
+    if (currentIndex > 0) {
+      SagaStep<T> stepPrev = steps.get(currentIndex - 1);
+      return handleError(transactionId, stepPrev.getRollback(), exception);
+    }
+    return (T) new Error(exception.getMessage());
+  }
+
+  private CompletableFuture<T> nextStep(
       T previouseStep,
       HttpRequest request,
+      String transactionId,
       BiFunction<String, T, T> apply,
-      Function<Throwable, T> rollback) {
-    if (previouseStep.getStatus().equals(SagaStatus.ERROR))
+      BiFunction<Throwable, String, T> rollback) {
+    Objects.requireNonNull(previouseStep.getStatus(), "No status from previouse step available");
+    Objects.requireNonNull(transactionId, "No transactionId available");
+    if (previouseStep.getStatus().equals(SagaStatus.ERROR)
+        || previouseStep.getStatus().equals(SagaStatus.CANCEL_FAIL))
       return CompletableFuture.completedFuture(previouseStep);
     return client
         .sendAsync(request, BodyHandlers.ofString())
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
         .thenApply(response -> apply.apply(response, previouseStep))
-        .exceptionally(
-            exception -> {
-              T result = rollback.apply(exception);
-              result.setStatus(SagaStatus.ERROR);
-              return result;
-            });
+        .exceptionally(exception -> handleError(transactionId, rollback, exception));
   }
 
-  public CompletableFuture<T> invokeStep(
-      HttpRequest request, Function<String, T> combine, Function<Throwable, T> rollback) {
+  private CompletableFuture<T> invokeStep(
+      HttpRequest request,
+      String transactionId,
+      BiFunction<String, String, T> combine,
+      BiFunction<Throwable, String, T> rollback) {
+    Objects.requireNonNull(transactionId, "No transactionId available");
     return client
         .sendAsync(request, BodyHandlers.ofString())
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
-        .thenApply(combine)
-        .exceptionally(
-            exception -> {
-              T result = rollback.apply(exception);
-              result.setStatus(SagaStatus.ERROR);
-              return result;
-            });
+        .thenApply((response) -> combine.apply(response, transactionId))
+        .exceptionally(exception -> handleError(transactionId, rollback, exception));
+  }
+
+  private T handleError(
+      String transactionId, BiFunction<Throwable, String, T> rollback, Throwable exception) {
+    try {
+      T result = rollback.apply(exception, transactionId);
+      result.setStatus(SagaStatus.ERROR);
+      result.addError(exception.getMessage());
+      return result;
+    } catch (Exception e) {
+      String message =
+          "Exception "
+              + e.toString()
+              + " caused while handling Error "
+              + (e.getMessage() != null ? e.getMessage() : "");
+      return (T) new Error(exception.getMessage(), message);
+    }
   }
 
   private HttpResponse<String> checkStatus(HttpResponse<String> response) {
-    System.out.println(">>> " + response.body());
     if (response.statusCode() != 200) throw new RuntimeException(response.body());
     return response;
   }

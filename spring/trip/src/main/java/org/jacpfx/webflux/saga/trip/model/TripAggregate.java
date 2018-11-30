@@ -203,106 +203,174 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.trip.model;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpRequest.Builder;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import javax.validation.Valid;
 import org.jacpfx.webflux.saga.api.Saga;
-import org.jacpfx.webflux.saga.api.SagaFluentBuilder;
 import org.jacpfx.webflux.saga.api.SagaStatus;
-import org.jacpfx.webflux.saga.trip.model.Car;
-import org.jacpfx.webflux.saga.trip.model.Flight;
-import org.jacpfx.webflux.saga.trip.model.Hotel;
-import org.jacpfx.webflux.saga.trip.model.TripAggregate;
-import org.jacpfx.webflux.saga.trip.service.TripBookService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
 
-@RestController
-public class TripBookController {
-  @Qualifier("carBookConnectionBuilder")
-  @Autowired
-  private Builder carBookConnectionBuilder;
+public class TripAggregate extends Saga {
+  public Car car;
+  public Flight flight;
+  public Hotel hotel;
 
-  @Qualifier("hotelBookConnectionBuilder")
-  @Autowired
-  private Builder hotelBookConnectionBuilder;
+  public TripAggregate() {}
 
-  @Qualifier("flightBookConnectionBuilder")
-  @Autowired
-  private Builder flightBookConnectionBuilder;
-
-  @Autowired private TripBookService service;
-
-  @Qualifier("httpDefaultClient")
-  @Autowired
-  private HttpClient httpClient;
-
-  @PostMapping("/trip")
-  public Mono<? extends Saga> createBooking(@Valid @RequestBody TripAggregate tripAggregate) {
-    String transactionId = UUID.randomUUID().toString();
-    tripAggregate.setTransactionId(transactionId);
-    service.persist(tripAggregate.getTrip().updateStatus(SagaStatus.START));
-    HttpRequest flightRequest =
-        flightBookConnectionBuilder
-            .POST(
-                BodyPublishers.ofString(asString(new Flight(tripAggregate.flight, transactionId))))
-            .build();
-
-    HttpRequest hotelRequest =
-        hotelBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Hotel(tripAggregate.hotel, transactionId))))
-            .build();
-
-    HttpRequest carRequest =
-        carBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Car(tripAggregate.car, transactionId))))
-            .build();
-
-    return Mono.fromFuture(
-            tripInvocation(transactionId, tripAggregate, flightRequest, hotelRequest, carRequest))
-        .doOnSuccess(aggregate -> service.persist(TripAggregate.class.cast(aggregate).getTrip()));
+  public TripAggregate(Flight flight, Car car, Hotel hotel) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
   }
 
-  public CompletableFuture<? extends Saga> tripInvocation(
-      String transactionId,
-      TripAggregate tripAggregate,
-      HttpRequest flightRequest,
-      HttpRequest hotelRequest,
-      HttpRequest carRequest) {
-    return SagaFluentBuilder.invoke(
-            flightRequest,
-            transactionId,
-            service::tripFlightUpdate,
-            (exception, transId) -> service.cancelFligh(tripAggregate, transId))
-        .andThan(
-            hotelRequest,
-            service::tripHotelUpdate,
-            (exception, transId) -> service.rollBackHotelBooking(tripAggregate, transId))
-        .andThan(
-            carRequest,
-            service::tripCarUpdate,
-            (exception, transId) -> service.rollBackCarBooking(tripAggregate, transId))
-        .execute(httpClient);
+  public TripAggregate(
+      Flight flight, Car car, Hotel hotel, String transactionId, SagaStatus status) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
+    this.status = status;
   }
 
-  private String asString(Object object) {
-    try {
-      return new ObjectMapper().writeValueAsString(object);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
+  public TripAggregate(Flight flight, Car car, Hotel hotel, String transactionId) {
+    this.car = car;
+    this.flight = flight;
+    this.hotel = hotel;
+    this.transactionId = transactionId;
+  }
+
+  public TripAggregate(Flight flight) {
+    this.car = null;
+    this.flight = flight;
+    this.hotel = null;
+  }
+
+  public TripAggregate(Car car) {
+    this.car = car;
+    this.flight = null;
+    this.hotel = null;
+  }
+
+  public TripAggregate(Hotel hotel) {
+    this.car = null;
+    this.flight = null;
+    this.hotel = hotel;
+  }
+
+  public TripAggregate(Hotel hotel, Car car) {
+    this.car = car;
+    this.flight = null;
+    this.hotel = hotel;
+  }
+
+  public TripAggregate(Flight flight, TripAggregate previouse) {
+    this.car = previouse.car;
+    this.flight = flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public TripAggregate(Car car, TripAggregate previouse) {
+    this.car = car;
+    this.flight = previouse.flight;
+    this.hotel = previouse.hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public TripAggregate(Hotel hotel, TripAggregate previouse) {
+    this.car = previouse.car;
+    this.flight = previouse.flight;
+    this.hotel = hotel;
+    this.transactionId = previouse.transactionId;
+  }
+
+  public Car getCar() {
+    return car;
+  }
+
+  public void setCar(Car car) {
+    this.car = car;
+  }
+
+  public Flight getFlight() {
+    return flight;
+  }
+
+  public void setFlight(Flight flight) {
+    this.flight = flight;
+  }
+
+  public Hotel getHotel() {
+    return hotel;
+  }
+
+  public void setHotel(Hotel hotel) {
+    this.hotel = hotel;
+  }
+
+  public Trip getTrip() {
+    return new Trip(
+        null,
+        car != null ? car.getId() : null,
+        hotel != null ? hotel.getId() : null,
+        flight != null ? flight.getId() : null,
+        transactionId,
+        status);
+  }
+
+  @Override
+  public String toString() {
+    return "TripAggregate{"
+        + "car="
+        + car
+        + ", flight="
+        + flight
+        + ", hotel="
+        + hotel
+        + ", status="
+        + status
+        + '}';
+  }
+
+  public static class TripBuilder {
+
+    private Flight flight;
+    private Car car;
+    private Hotel hotel;
+    private String transactionId;
+    private SagaStatus status;
+    private TripAggregate previouse;
+
+    public TripBuilder setFlight(Flight flight) {
+      this.flight = flight;
+      return this;
     }
-    return "";
+
+    public TripBuilder setCar(Car car) {
+      this.car = car;
+      return this;
+    }
+
+    public TripBuilder setHotel(Hotel hotel) {
+      this.hotel = hotel;
+      return this;
+    }
+
+    public TripBuilder setTransactionId(String transactionId) {
+      this.transactionId = transactionId;
+      return this;
+    }
+
+    public TripBuilder setStatus(SagaStatus status) {
+      this.status = status;
+      return this;
+    }
+
+    public TripBuilder setPreviouse(TripAggregate previouse) {
+      this.previouse = previouse;
+      return this;
+    }
+
+    public TripAggregate createTrip() {
+      return new TripAggregate(flight, car, hotel, transactionId, status);
+    }
   }
 }

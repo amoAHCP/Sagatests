@@ -205,6 +205,4 @@
 
 package org.jacpfx.webflux.saga.trip;
 
-public class MyTest {
-
-}
+public class MyTest {}

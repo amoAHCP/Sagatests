@@ -224,8 +224,6 @@ public class Hotel extends Saga {
   @Size(max = 140)
   private String hotel;
 
-  private String transactionId;
-
   public Hotel() {}
 
   public Hotel(
@@ -237,12 +235,10 @@ public class Hotel extends Saga {
     this.transactionId = transactionId;
   }
 
-  public Hotel(
-      Hotel hotel,
-      String transactionId) {
+  public Hotel(Hotel hotel, String transactionId) {
     this.city = hotel.city;
     this.hotel = hotel.hotel;
-    setStatus(hotel.status);
+    this.status = hotel.status;
     this.transactionId = transactionId;
   }
 
@@ -254,7 +250,7 @@ public class Hotel extends Saga {
     this.city = city;
     this.hotel = hotel;
     this.transactionId = transactionId;
-    setStatus(status);
+    this.status = status;
   }
 
   public String getId() {
@@ -281,14 +277,6 @@ public class Hotel extends Saga {
     this.hotel = hotel;
   }
 
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
   @Override
   public String toString() {
     return "Hotel{"
@@ -307,5 +295,37 @@ public class Hotel extends Saga {
         + ", status="
         + status
         + '}';
+  }
+
+  public static class HotelBuilder {
+
+    private @NotBlank @Size(max = 140) String city;
+    private @NotBlank @Size(max = 140) String hotel;
+    private String transactionId;
+    private SagaStatus status;
+
+    public HotelBuilder setCity(@NotBlank @Size(max = 140) String city) {
+      this.city = city;
+      return this;
+    }
+
+    public HotelBuilder setHotel(@NotBlank @Size(max = 140) String hotel) {
+      this.hotel = hotel;
+      return this;
+    }
+
+    public HotelBuilder setTransactionId(String transactionId) {
+      this.transactionId = transactionId;
+      return this;
+    }
+
+    public HotelBuilder setStatus(SagaStatus status) {
+      this.status = status;
+      return this;
+    }
+
+    public Hotel createHotel() {
+      return new Hotel(city, hotel, transactionId, status);
+    }
   }
 }

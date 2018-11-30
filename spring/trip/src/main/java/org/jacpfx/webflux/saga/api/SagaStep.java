@@ -207,36 +207,43 @@ package org.jacpfx.webflux.saga.api;
 
 import java.net.http.HttpRequest;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class SagaStep<T extends Saga> {
 
   private final HttpRequest request;
+  private final String transactionId;
   private final BiFunction<String, T, T> combine;
-  private final Function<String, T> combineFirst;
-  private final Function<Throwable, T> rollback;
+  private final BiFunction<String, String, T> combineFirst;
+  private final BiFunction<Throwable, String, T> rollback;
 
   public SagaStep(
-      HttpRequest request, BiFunction<String, T, T> combine, Function<Throwable, T> rollback) {
+      HttpRequest request,
+      BiFunction<String, T, T> combine,
+      BiFunction<Throwable, String, T> rollback) {
     this.request = request;
     this.combine = combine;
     this.rollback = rollback;
     this.combineFirst = null;
+    this.transactionId = null;
   }
 
   public SagaStep(
-      HttpRequest request, Function<String, T> combineFirst, Function<Throwable, T> rollback) {
+      HttpRequest request,
+      String transactionId,
+      BiFunction<String, String, T> combineFirst,
+      BiFunction<Throwable, String, T> rollback) {
     this.request = request;
     this.combine = null;
     this.rollback = rollback;
     this.combineFirst = combineFirst;
+    this.transactionId = transactionId;
   }
 
   public HttpRequest getRequest() {
     return request;
   }
 
-  public Function<String, T> getCombineFirst() {
+  public BiFunction<String, String, T> getCombineFirst() {
     return combineFirst;
   }
 
@@ -244,7 +251,11 @@ public class SagaStep<T extends Saga> {
     return combine;
   }
 
-  public Function<Throwable, T> getRollback() {
+  public BiFunction<Throwable, String, T> getRollback() {
     return rollback;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
   }
 }

@@ -1,11 +1,30 @@
-
-spring.jmx:
-  enabled: false
-
+# https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
 spring:
+  main:
+    banner-mode: "off"
+  jmx:
+    enabled: false
+  jsp-servlet:
+    registered: false
+  freemarker:
+    enabled: false
+  groovy:
+    template:
+      enabled: false
+  mobile:
+    sitepreference:
+      enabled: false
+  thymeleaf:
+    cache: false
   data:
     mongodb.uri: mongodb://localhost:27017/trip
     mongo.repositories.enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
 
 server:
   port: 9000

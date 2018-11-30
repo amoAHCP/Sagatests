@@ -203,106 +203,14 @@
  *    limitations under the License.
  */
 
-package org.jacpfx.webflux.saga.trip;
+package org.jacpfx.webflux.saga.api;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
-import java.net.http.HttpRequest.Builder;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import javax.validation.Valid;
-import org.jacpfx.webflux.saga.api.Saga;
-import org.jacpfx.webflux.saga.api.SagaFluentBuilder;
-import org.jacpfx.webflux.saga.api.SagaStatus;
-import org.jacpfx.webflux.saga.trip.model.Car;
-import org.jacpfx.webflux.saga.trip.model.Flight;
-import org.jacpfx.webflux.saga.trip.model.Hotel;
-import org.jacpfx.webflux.saga.trip.model.TripAggregate;
-import org.jacpfx.webflux.saga.trip.service.TripBookService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Mono;
+import java.util.stream.Stream;
 
-@RestController
-public class TripBookController {
-  @Qualifier("carBookConnectionBuilder")
-  @Autowired
-  private Builder carBookConnectionBuilder;
+public class Error extends Saga {
 
-  @Qualifier("hotelBookConnectionBuilder")
-  @Autowired
-  private Builder hotelBookConnectionBuilder;
-
-  @Qualifier("flightBookConnectionBuilder")
-  @Autowired
-  private Builder flightBookConnectionBuilder;
-
-  @Autowired private TripBookService service;
-
-  @Qualifier("httpDefaultClient")
-  @Autowired
-  private HttpClient httpClient;
-
-  @PostMapping("/trip")
-  public Mono<? extends Saga> createBooking(@Valid @RequestBody TripAggregate tripAggregate) {
-    String transactionId = UUID.randomUUID().toString();
-    tripAggregate.setTransactionId(transactionId);
-    service.persist(tripAggregate.getTrip().updateStatus(SagaStatus.START));
-    HttpRequest flightRequest =
-        flightBookConnectionBuilder
-            .POST(
-                BodyPublishers.ofString(asString(new Flight(tripAggregate.flight, transactionId))))
-            .build();
-
-    HttpRequest hotelRequest =
-        hotelBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Hotel(tripAggregate.hotel, transactionId))))
-            .build();
-
-    HttpRequest carRequest =
-        carBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Car(tripAggregate.car, transactionId))))
-            .build();
-
-    return Mono.fromFuture(
-            tripInvocation(transactionId, tripAggregate, flightRequest, hotelRequest, carRequest))
-        .doOnSuccess(aggregate -> service.persist(TripAggregate.class.cast(aggregate).getTrip()));
-  }
-
-  public CompletableFuture<? extends Saga> tripInvocation(
-      String transactionId,
-      TripAggregate tripAggregate,
-      HttpRequest flightRequest,
-      HttpRequest hotelRequest,
-      HttpRequest carRequest) {
-    return SagaFluentBuilder.invoke(
-            flightRequest,
-            transactionId,
-            service::tripFlightUpdate,
-            (exception, transId) -> service.cancelFligh(tripAggregate, transId))
-        .andThan(
-            hotelRequest,
-            service::tripHotelUpdate,
-            (exception, transId) -> service.rollBackHotelBooking(tripAggregate, transId))
-        .andThan(
-            carRequest,
-            service::tripCarUpdate,
-            (exception, transId) -> service.rollBackCarBooking(tripAggregate, transId))
-        .execute(httpClient);
-  }
-
-  private String asString(Object object) {
-    try {
-      return new ObjectMapper().writeValueAsString(object);
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
-    }
-    return "";
+  public Error(String... errors) {
+    Stream.of(errors).forEach(error -> addError(error));
+    setStatus(SagaStatus.CANCEL_FAIL);
   }
 }

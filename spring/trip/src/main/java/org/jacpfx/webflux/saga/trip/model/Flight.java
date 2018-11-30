@@ -224,8 +224,6 @@ public class Flight extends Saga {
   @Size(max = 140)
   private String flightCode;
 
-  private String transactionId;
-
   public Flight() {}
 
   public Flight(
@@ -237,13 +235,11 @@ public class Flight extends Saga {
     this.transactionId = transactionId;
   }
 
-  public Flight(
-      Flight flight,
-      String transactionId) {
+  public Flight(Flight flight, String transactionId) {
     this.departureTime = flight.departureTime;
     this.flightCode = flight.flightCode;
     this.transactionId = transactionId;
-    setStatus(flight.status);
+    this.status = flight.status;
   }
 
   public Flight(
@@ -254,7 +250,7 @@ public class Flight extends Saga {
     this.departureTime = departureTime;
     this.flightCode = flightCode;
     this.transactionId = transactionId;
-    setStatus(status);
+    this.status = status;
   }
 
   public String getId() {
@@ -281,31 +277,54 @@ public class Flight extends Saga {
     this.flightCode = flightCode;
   }
 
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
   @Override
   public String toString() {
-    return "Flight{"
-        + "id='"
+    return "{\"Flight\":"
+        + super.toString()
+        + ", \"id\":\""
         + id
-        + '\''
-        + ", departureTime='"
+        + "\""
+        + ", \"departureTime\":\""
         + departureTime
-        + '\''
-        + ", flightCode='"
+        + "\""
+        + ", \"flightCode\":\""
         + flightCode
-        + '\''
-        + ", status="
-        + status
-        + ", transactionId='"
+        + "\""
+        + ", \"transactionId\":\""
         + transactionId
-        + '\''
-        + '}';
+        + "\""
+        + "}";
+  }
+
+  public static class FlightBuilder {
+
+    private @NotBlank @Size(max = 140) String departureTime;
+    private @NotBlank @Size(max = 140) String flightCode;
+    private String transactionId;
+    private SagaStatus status;
+
+    public FlightBuilder setDepartureTime(@NotBlank @Size(max = 140) String departureTime) {
+      this.departureTime = departureTime;
+      return this;
+    }
+
+    public FlightBuilder setFlightCode(@NotBlank @Size(max = 140) String flightCode) {
+      this.flightCode = flightCode;
+      return this;
+    }
+
+    public FlightBuilder setTransactionId(String transactionId) {
+      this.transactionId = transactionId;
+      return this;
+    }
+
+    public FlightBuilder setStatus(SagaStatus status) {
+      this.status = status;
+      return this;
+    }
+
+    public Flight createFlight() {
+      return new Flight(departureTime, flightCode, transactionId, status);
+    }
   }
 }

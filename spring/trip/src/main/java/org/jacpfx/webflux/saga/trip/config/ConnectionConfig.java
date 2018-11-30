@@ -221,17 +221,14 @@ public class ConnectionConfig {
   @Value("${trip.flight.bookURL}")
   private String flightBookURL;
 
-
   @Value("${trip.hotel.bookURL}")
   private String hotelBookURL;
 
   @Value("${trip.car.bookURL}")
   private String carBookURL;
 
-
   @Value("${trip.flight.cancelURL}")
   private String flightCancelURL;
-
 
   @Value("${trip.hotel.cancelURL}")
   private String hotelCancelURL;
@@ -263,7 +260,6 @@ public class ConnectionConfig {
         .setHeader("Content-Type", "application/json;charset=UTF-8");
   }
 
-
   @Bean
   @Qualifier("carCancelConnectionBuilder")
   public Builder carCancelConnectionBuilder() {
@@ -290,7 +286,7 @@ public class ConnectionConfig {
 
   @Bean
   @Qualifier("httpDefaultClient")
-  public HttpClient httpDefaultClient(){
-    return  HttpClient.newBuilder().version(Version.HTTP_1_1).build();
+  public HttpClient httpDefaultClient() {
+    return HttpClient.newBuilder().version(Version.HTTP_1_1).build();
   }
 }

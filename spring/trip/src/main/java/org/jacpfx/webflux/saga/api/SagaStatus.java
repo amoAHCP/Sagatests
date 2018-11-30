@@ -209,5 +209,7 @@ public enum SagaStatus {
   OK,
   CANCEL_OK,
   CANCEL_FAIL,
-  ERROR
+  ERROR,
+  START,
+  FINISHED
 }

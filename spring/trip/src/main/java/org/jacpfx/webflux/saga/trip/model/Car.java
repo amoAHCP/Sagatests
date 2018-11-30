@@ -220,30 +220,26 @@ public class Car extends Saga {
   @Size(max = 140)
   private String model;
 
-
-  private String transactionId;
-
   public Car() {}
 
-  public Car(
-      @NotBlank @Size(max = 140) String model, String transactionId) {
+  public Car(@NotBlank @Size(max = 140) String model) {
+    this.model = model;
+  }
+
+  public Car(@NotBlank @Size(max = 140) String model, String transactionId) {
     this.model = model;
     this.transactionId = transactionId;
   }
 
-  public Car(
-      Car model, String transactionId) {
+  public Car(Car model, String transactionId) {
     this.model = model.model;
     this.transactionId = transactionId;
-    setStatus(model.status);
+    this.status = model.status;
   }
 
-  public Car(
-      @NotBlank @Size(max = 140) String model,
-      String transactionId,
-      SagaStatus status) {
+  public Car(@NotBlank @Size(max = 140) String model, String transactionId, SagaStatus status) {
     this.model = model;
-    setStatus(status);
+    this.status = status;
     this.transactionId = transactionId;
   }
 
@@ -263,28 +259,45 @@ public class Car extends Saga {
     this.model = model;
   }
 
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
   @Override
   public String toString() {
-    return "Car{"
-        + "id='"
+    return "{\"Car\":"
+        + super.toString()
+        + ", \"id\":\""
         + id
-        + '\''
-        + ", model='"
+        + "\""
+        + ", \"model\":\""
         + model
-        + '\''
-        + ", transactionId='"
+        + "\""
+        + ", \"transactionId\":\""
         + transactionId
-        + '\''
-        + ", status="
-        + status
-        + '}';
+        + "\""
+        + "}";
+  }
+
+  public static class CarBuilder {
+
+    private @NotBlank @Size(max = 140) String model;
+    private String transactionId;
+    private SagaStatus status;
+
+    public CarBuilder setModel(@NotBlank @Size(max = 140) String model) {
+      this.model = model;
+      return this;
+    }
+
+    public CarBuilder setTransactionId(String transactionId) {
+      this.transactionId = transactionId;
+      return this;
+    }
+
+    public CarBuilder setStatus(SagaStatus status) {
+      this.status = status;
+      return this;
+    }
+
+    public Car createCar() {
+      return new Car(model, transactionId, status);
+    }
   }
 }

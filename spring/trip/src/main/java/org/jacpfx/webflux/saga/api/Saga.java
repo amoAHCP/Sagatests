@@ -205,10 +205,13 @@
 
 package org.jacpfx.webflux.saga.api;
 
-import org.jacpfx.webflux.saga.api.SagaStatus;
+import java.util.ArrayList;
+import java.util.List;
 
 public abstract class Saga {
+  public String transactionId;
   protected SagaStatus status;
+  private List<String> errorMessages = new ArrayList<>();
 
   public SagaStatus getStatus() {
     return status;
@@ -216,5 +219,21 @@ public abstract class Saga {
 
   public void setStatus(SagaStatus status) {
     this.status = status;
+  }
+
+  public void addError(String message) {
+    errorMessages.add(message);
+  }
+
+  public List<String> getErrorMessages() {
+    return errorMessages;
+  }
+
+  public String getTransactionId() {
+    return transactionId;
+  }
+
+  public void setTransactionId(String transactionId) {
+    this.transactionId = transactionId;
   }
 }

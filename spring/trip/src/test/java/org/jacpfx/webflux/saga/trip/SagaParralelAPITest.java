@@ -222,9 +222,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import org.jacpfx.webflux.saga.api.SagaStatus;
 import org.jacpfx.webflux.saga.trip.model.Car;
+import org.jacpfx.webflux.saga.trip.model.Car.CarBuilder;
 import org.jacpfx.webflux.saga.trip.model.Flight;
+import org.jacpfx.webflux.saga.trip.model.Flight.FlightBuilder;
 import org.jacpfx.webflux.saga.trip.model.Hotel;
-import org.jacpfx.webflux.saga.trip.model.Trip;
+import org.jacpfx.webflux.saga.trip.model.Hotel.HotelBuilder;
+import org.jacpfx.webflux.saga.trip.model.TripAggregate;
+import org.jacpfx.webflux.saga.trip.model.TripAggregate.TripBuilder;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -243,9 +247,23 @@ public class SagaParralelAPITest {
   public void setup() throws JsonProcessingException {
     client = HttpClient.newBuilder().version(Version.HTTP_1_1).build();
     transactionId = UUID.randomUUID().toString();
-    flight = new Flight("2017-10-01", "BA286", transactionId);
-    car = new Car("Tesla Model S P100D", transactionId);
-    hotel = new Hotel("SF", "Hilton", transactionId);
+    flight =
+        new FlightBuilder()
+            .setDepartureTime("2017-10-01")
+            .setFlightCode("BA286")
+            .setTransactionId(transactionId)
+            .createFlight();
+    car =
+        new CarBuilder()
+            .setModel("Tesla Model S P100D")
+            .setTransactionId(transactionId)
+            .createCar();
+    hotel =
+        new HotelBuilder()
+            .setCity("SF")
+            .setHotel("Hilton")
+            .setTransactionId(transactionId)
+            .createHotel();
     flightCorrectJson = new ObjectMapper().writeValueAsString(flight);
     hotelCorrectJson = new ObjectMapper().writeValueAsString(hotel);
     carCorrectJson = new ObjectMapper().writeValueAsString(car);
@@ -276,29 +294,43 @@ public class SagaParralelAPITest {
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
-    Trip myTrip =
+    TripAggregate myTripAggregate =
         client
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null))
+            .thenApply(
+                val ->
+                    new TripBuilder()
+                        .setFlight(parse(val, Flight.class))
+                        .setCar(null)
+                        .setHotel(null)
+                        .createTrip())
             .thenCompose(
                 flight ->
                     next(
                         hotelRequest,
                         hotelResponse ->
-                            new Trip(flight.flight, null, parse(hotelResponse, Hotel.class)),
-                        t->null))
+                            new TripBuilder()
+                                .setFlight(flight.flight)
+                                .setCar(null)
+                                .setHotel(parse(hotelResponse, Hotel.class))
+                                .createTrip(),
+                        t -> null))
             .thenCompose(
                 hotel ->
                     next(
                         carRequest,
                         carResponse ->
-                            new Trip(hotel.flight, parse(carResponse, Car.class), hotel.hotel),
-                        t->null))
+                            new TripBuilder()
+                                .setFlight(hotel.flight)
+                                .setCar(parse(carResponse, Car.class))
+                                .setHotel(hotel.hotel)
+                                .createTrip(),
+                        t -> null))
             .join();
     // latch.await();
-    System.out.println(myTrip);
+    System.out.println(myTripAggregate);
   }
 
   @Test
@@ -326,30 +358,44 @@ public class SagaParralelAPITest {
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
-    Trip myTrip =
+    TripAggregate myTripAggregate =
         client
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null))
+            .thenApply(
+                val ->
+                    new TripBuilder()
+                        .setFlight(parse(val, Flight.class))
+                        .setCar(null)
+                        .setHotel(null)
+                        .createTrip())
             .thenCompose(
                 flight ->
                     next(
                         hotelRequest,
                         hotelResponse ->
-                            new Trip(flight.flight, null, parse(hotelResponse, Hotel.class)),
-                        t->null))
+                            new TripBuilder()
+                                .setFlight(flight.flight)
+                                .setCar(null)
+                                .setHotel(parse(hotelResponse, Hotel.class))
+                                .createTrip(),
+                        t -> null))
             .thenCompose(
                 hotel ->
                     next(
                         carRequest,
                         carResponse ->
-                            new Trip(hotel.flight, parse(carResponse, Car.class), hotel.hotel),
-                        t->null))
+                            new TripBuilder()
+                                .setFlight(hotel.flight)
+                                .setCar(parse(carResponse, Car.class))
+                                .setHotel(hotel.hotel)
+                                .createTrip(),
+                        t -> null))
             .exceptionally(exception -> cancelFligh(transactionId))
             .join();
     // latch.await();
-    System.out.println(myTrip);
+    System.out.println(myTripAggregate);
   }
 
   @Test
@@ -377,28 +423,42 @@ public class SagaParralelAPITest {
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
-    Trip myTrip =
+    TripAggregate myTripAggregate =
         client
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null, null, SagaStatus.OK))
+            .thenApply(
+                val ->
+                    new TripBuilder()
+                        .setFlight(parse(val, Flight.class))
+                        .setCar(null)
+                        .setHotel(null)
+                        .setTransactionId(null)
+                        .setStatus(SagaStatus.OK)
+                        .createTrip())
             .thenCompose(
                 flight ->
                     next(
                         hotelRequest,
                         hotelResponse ->
-                            new Trip(
-                                flight.flight,
-                                null,
-                                parse(hotelResponse, Hotel.class),
-                                null,
-                                SagaStatus.OK),
+                            new TripBuilder()
+                                .setFlight(flight.flight)
+                                .setCar(null)
+                                .setHotel(parse(hotelResponse, Hotel.class))
+                                .setTransactionId(null)
+                                .setStatus(SagaStatus.OK)
+                                .createTrip(),
                         exception -> {
-                          Trip filghtCanceld = cancelFligh(transactionId);
-                          Trip hotelCanceled = cancelHotel(transactionId);
-                          return new Trip(
-                              filghtCanceld.flight, null, hotelCanceled.hotel, null,SagaStatus.ERROR);
+                          TripAggregate filghtCanceld = cancelFligh(transactionId);
+                          TripAggregate hotelCanceled = cancelHotel(transactionId);
+                          return new TripBuilder()
+                              .setFlight(filghtCanceld.flight)
+                              .setCar(null)
+                              .setHotel(hotelCanceled.hotel)
+                              .setTransactionId(null)
+                              .setStatus(SagaStatus.ERROR)
+                              .createTrip();
                         }))
             .thenCompose(
                 hotel -> {
@@ -407,28 +467,30 @@ public class SagaParralelAPITest {
                   return next(
                       carRequest,
                       carResponse ->
-                          new Trip(
-                              hotel.flight,
-                              parse(carResponse, Car.class),
-                              hotel.hotel,
-                              null,
-                              SagaStatus.OK),
+                          new TripBuilder()
+                              .setFlight(hotel.flight)
+                              .setCar(parse(carResponse, Car.class))
+                              .setHotel(hotel.hotel)
+                              .setTransactionId(null)
+                              .setStatus(SagaStatus.OK)
+                              .createTrip(),
                       exception -> {
-                        Trip filghtCanceld = cancelFligh(transactionId);
-                        Trip hotelCanceled = cancelHotel(transactionId);
-                        Trip carCanceld = cancelCar(transactionId);
-                        return new Trip(
-                            filghtCanceld.flight,
-                            carCanceld.car,
-                            hotelCanceled.hotel,
-                            null,
-                            SagaStatus.ERROR);
+                        TripAggregate filghtCanceld = cancelFligh(transactionId);
+                        TripAggregate hotelCanceled = cancelHotel(transactionId);
+                        TripAggregate carCanceld = cancelCar(transactionId);
+                        return new TripBuilder()
+                            .setFlight(filghtCanceld.flight)
+                            .setCar(carCanceld.car)
+                            .setHotel(hotelCanceled.hotel)
+                            .setTransactionId(null)
+                            .setStatus(SagaStatus.ERROR)
+                            .createTrip();
                       });
                 })
             .exceptionally(exception -> cancelFligh(transactionId))
             .join();
     // latch.await();
-    System.out.println(myTrip);
+    System.out.println(myTripAggregate);
   }
 
   @Test
@@ -456,28 +518,42 @@ public class SagaParralelAPITest {
             .setHeader("Content-Type", "application/json;charset=UTF-8")
             .build();
 
-    Trip myTrip =
+    TripAggregate myTripAggregate =
         client
             .sendAsync(flightRequest, BodyHandlers.ofString())
             .thenApply(this::checkStatus)
             .thenApply(HttpResponse::body)
-            .thenApply(val -> new Trip(parse(val, Flight.class), null, null,null, SagaStatus.OK))
+            .thenApply(
+                val ->
+                    new TripBuilder()
+                        .setFlight(parse(val, Flight.class))
+                        .setCar(null)
+                        .setHotel(null)
+                        .setTransactionId(null)
+                        .setStatus(SagaStatus.OK)
+                        .createTrip())
             .thenCompose(
                 flight ->
                     next(
                         hotelRequest,
                         hotelResponse ->
-                            new Trip(
-                                flight.flight,
-                                null,
-                                parse(hotelResponse, Hotel.class),
-                                null,
-                                SagaStatus.OK),
+                            new TripBuilder()
+                                .setFlight(flight.flight)
+                                .setCar(null)
+                                .setHotel(parse(hotelResponse, Hotel.class))
+                                .setTransactionId(null)
+                                .setStatus(SagaStatus.OK)
+                                .createTrip(),
                         exception -> {
-                          Trip filghtCanceld = cancelFligh(transactionId);
-                          Trip hotelCanceled = cancelHotel(transactionId);
-                          return new Trip(
-                              filghtCanceld.flight, null, hotelCanceled.hotel, null,SagaStatus.ERROR);
+                          TripAggregate filghtCanceld = cancelFligh(transactionId);
+                          TripAggregate hotelCanceled = cancelHotel(transactionId);
+                          return new TripBuilder()
+                              .setFlight(filghtCanceld.flight)
+                              .setCar(null)
+                              .setHotel(hotelCanceled.hotel)
+                              .setTransactionId(null)
+                              .setStatus(SagaStatus.ERROR)
+                              .createTrip();
                         }))
             .thenCompose(
                 hotel -> {
@@ -486,52 +562,89 @@ public class SagaParralelAPITest {
                   return next(
                       carRequest,
                       carResponse ->
-                          new Trip(
-                              hotel.flight,
-                              parse(carResponse, Car.class),
-                              hotel.hotel,
-                              null,
-                              SagaStatus.OK),
+                          new TripBuilder()
+                              .setFlight(hotel.flight)
+                              .setCar(parse(carResponse, Car.class))
+                              .setHotel(hotel.hotel)
+                              .setTransactionId(null)
+                              .setStatus(SagaStatus.OK)
+                              .createTrip(),
                       exception -> {
-                        Trip filghtCanceld = cancelFligh(transactionId);
-                        Trip hotelCanceled = cancelHotel(transactionId);
-                        Trip carCanceld = cancelCar(transactionId);
-                        return new Trip(
-                            filghtCanceld.flight,
-                            carCanceld.car,
-                            hotelCanceled.hotel,
-                            null,
-                            SagaStatus.ERROR);
+                        TripAggregate filghtCanceld = cancelFligh(transactionId);
+                        TripAggregate hotelCanceled = cancelHotel(transactionId);
+                        TripAggregate carCanceld = cancelCar(transactionId);
+                        return new TripBuilder()
+                            .setFlight(filghtCanceld.flight)
+                            .setCar(carCanceld.car)
+                            .setHotel(hotelCanceled.hotel)
+                            .setTransactionId(null)
+                            .setStatus(SagaStatus.ERROR)
+                            .createTrip();
                       });
                 })
             .exceptionally(exception -> cancelFligh(transactionId))
             .join();
     // latch.await();
-    System.out.println(myTrip);
+    System.out.println(myTripAggregate);
   }
 
-  private Trip cancelFligh(String transactionId) {
+  private TripAggregate cancelFligh(String transactionId) {
     System.out.println("Cancel flight with trasactionId: " + transactionId);
     Flight f =
-        new Flight(
-            flight.getFlightCode(), flight.getDepartureTime(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(f, null, null, null,SagaStatus.ERROR);
+        new FlightBuilder()
+            .setDepartureTime(flight.getFlightCode())
+            .setFlightCode(flight.getDepartureTime())
+            .setTransactionId(transactionId)
+            .setStatus(SagaStatus.CANCEL_OK)
+            .createFlight();
+    return new TripBuilder()
+        .setFlight(f)
+        .setCar(null)
+        .setHotel(null)
+        .setTransactionId(null)
+        .setStatus(SagaStatus.ERROR)
+        .createTrip();
   }
 
-  private Trip cancelHotel(String transactionId) {
+  private TripAggregate cancelHotel(String transactionId) {
     System.out.println("Cancel hotel with trasactionId: " + transactionId);
-    Hotel f = new Hotel(hotel.getCity(), hotel.getHotel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, null, f, null,SagaStatus.ERROR);
+    Hotel f =
+        new HotelBuilder()
+            .setCity(hotel.getCity())
+            .setHotel(hotel.getHotel())
+            .setTransactionId(transactionId)
+            .setStatus(SagaStatus.CANCEL_OK)
+            .createHotel();
+    return new TripBuilder()
+        .setFlight(null)
+        .setCar(null)
+        .setHotel(f)
+        .setTransactionId(null)
+        .setStatus(SagaStatus.ERROR)
+        .createTrip();
   }
 
-  private Trip cancelCar(String transactionId) {
+  private TripAggregate cancelCar(String transactionId) {
     System.out.println("Cancel car with trasactionId: " + transactionId);
-    Car f = new Car(car.getModel(), transactionId, SagaStatus.CANCEL_OK);
-    return new Trip(null, f, null, null,SagaStatus.ERROR);
+    Car f =
+        new CarBuilder()
+            .setModel(car.getModel())
+            .setTransactionId(transactionId)
+            .setStatus(SagaStatus.CANCEL_OK)
+            .createCar();
+    return new TripBuilder()
+        .setFlight(null)
+        .setCar(f)
+        .setHotel(null)
+        .setTransactionId(null)
+        .setStatus(SagaStatus.ERROR)
+        .createTrip();
   }
 
-  private CompletableFuture<Trip> next(
-      HttpRequest request, Function<String, Trip> combine, Function<Throwable, Trip> rollback) {
+  private CompletableFuture<TripAggregate> next(
+      HttpRequest request,
+      Function<String, TripAggregate> combine,
+      Function<Throwable, TripAggregate> rollback) {
     return client
         .sendAsync(request, BodyHandlers.ofString())
         .thenApply(this::checkStatus)
