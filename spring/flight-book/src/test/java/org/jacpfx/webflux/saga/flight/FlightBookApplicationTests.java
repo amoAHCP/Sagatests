@@ -208,6 +208,7 @@ package org.jacpfx.webflux.saga.flight;
 import java.util.Collections;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -228,6 +229,7 @@ public class FlightBookApplicationTests {
 	FlightRepository repository;
 
 	@Test
+	@Ignore
 	public void testCreateFlight() {
 		Flight flight = new Flight("2017-10-01","BA286", UUID.randomUUID().toString());
 
@@ -244,6 +246,7 @@ public class FlightBookApplicationTests {
 	}
 
 	@Test
+	@Ignore
 	public void testGetSingleFlight() {
 		Flight flight = repository.save( new Flight("2017-10-01","BA286",UUID.randomUUID().toString())).block();
 

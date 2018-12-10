@@ -214,6 +214,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -225,6 +226,14 @@ public class CarBookController {
   public Mono<ResponseEntity<Car>> getHotelBooking(@PathVariable(value = "id") String carId) {
     return repository
         .findById(carId)
+        .map(car -> ResponseEntity.ok(car))
+        .defaultIfEmpty(ResponseEntity.notFound().build());
+  }
+
+  @GetMapping("/car")
+  public Flux<ResponseEntity<Car>> getHotelBookings() {
+    return repository
+        .findAll()
         .map(car -> ResponseEntity.ok(car))
         .defaultIfEmpty(ResponseEntity.notFound().build());
   }

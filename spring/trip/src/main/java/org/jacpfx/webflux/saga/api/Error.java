@@ -213,4 +213,5 @@ public class Error extends Saga {
     Stream.of(errors).forEach(error -> addError(error));
     setStatus(SagaStatus.CANCEL_FAIL);
   }
+
 }

@@ -283,7 +283,7 @@ public class SagaFluentBuilder<T extends Saga> {
     int currentIndex = steps.indexOf(currentStep);
     if (currentIndex > 0) {
       SagaStep<T> stepPrev = steps.get(currentIndex - 1);
-      return handleError(transactionId, stepPrev.getRollback(), exception);
+      return handleError(transactionId, stepPrev.getRollback(), "general error: ", exception);
     }
     return (T) new Error(exception.getMessage());
   }
@@ -304,7 +304,8 @@ public class SagaFluentBuilder<T extends Saga> {
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
         .thenApply(response -> apply.apply(response, previouseStep))
-        .exceptionally(exception -> handleError(transactionId, rollback, exception));
+        .exceptionally(
+            exception -> handleError(transactionId, rollback, request.uri().toString(), exception));
   }
 
   private CompletableFuture<T> invokeStep(
@@ -318,15 +319,20 @@ public class SagaFluentBuilder<T extends Saga> {
         .thenApply(this::checkStatus)
         .thenApply(HttpResponse::body)
         .thenApply((response) -> combine.apply(response, transactionId))
-        .exceptionally(exception -> handleError(transactionId, rollback, exception));
+        .exceptionally(
+            exception -> handleError(transactionId, rollback, request.uri().toString(), exception));
   }
 
   private T handleError(
-      String transactionId, BiFunction<Throwable, String, T> rollback, Throwable exception) {
+      String transactionId,
+      BiFunction<Throwable, String, T> rollback,
+      String source,
+      Throwable exception) {
     try {
       T result = rollback.apply(exception, transactionId);
       result.setStatus(SagaStatus.ERROR);
-      result.addError(exception.getMessage());
+      result.addError(source + " " + exception.getMessage());
+      result.setTransactionId(transactionId);
       return result;
     } catch (Exception e) {
       String message =
@@ -334,7 +340,8 @@ public class SagaFluentBuilder<T extends Saga> {
               + e.toString()
               + " caused while handling Error "
               + (e.getMessage() != null ? e.getMessage() : "");
-      return (T) new Error(exception.getMessage(), message);
+      e.printStackTrace();
+      return (T) new Error("TransactionId: " + transactionId, exception.getMessage(), message);
     }
   }
 

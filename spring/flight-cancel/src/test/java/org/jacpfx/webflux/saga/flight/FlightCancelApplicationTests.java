@@ -210,6 +210,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.flight.Flight;
 import org.jacpfx.webflux.saga.flight.FlightRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -231,6 +232,7 @@ public class FlightCancelApplicationTests {
 
 
 	@Test
+	@Ignore
 	public void testDeleteSingleFlight() {
 		final String transactionId = UUID.randomUUID().toString();
 		Flight flight = repository.save( new Flight("2017-10-01","BA286", transactionId)).block();

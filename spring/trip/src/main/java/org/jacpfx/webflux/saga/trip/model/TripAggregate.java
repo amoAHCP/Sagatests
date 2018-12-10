@@ -205,21 +205,22 @@
 
 package org.jacpfx.webflux.saga.trip.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.jacpfx.webflux.saga.api.Saga;
 import org.jacpfx.webflux.saga.api.SagaStatus;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
+@Document(collection = "tripAggregate")
 public class TripAggregate extends Saga {
+  @Id
+  @JsonIgnore
+  public String id;
   public Car car;
   public Flight flight;
   public Hotel hotel;
 
   public TripAggregate() {}
-
-  public TripAggregate(Flight flight, Car car, Hotel hotel) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
-  }
 
   public TripAggregate(
       Flight flight, Car car, Hotel hotel, String transactionId, SagaStatus status) {
@@ -228,58 +229,6 @@ public class TripAggregate extends Saga {
     this.hotel = hotel;
     this.transactionId = transactionId;
     this.status = status;
-  }
-
-  public TripAggregate(Flight flight, Car car, Hotel hotel, String transactionId) {
-    this.car = car;
-    this.flight = flight;
-    this.hotel = hotel;
-    this.transactionId = transactionId;
-  }
-
-  public TripAggregate(Flight flight) {
-    this.car = null;
-    this.flight = flight;
-    this.hotel = null;
-  }
-
-  public TripAggregate(Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = null;
-  }
-
-  public TripAggregate(Hotel hotel) {
-    this.car = null;
-    this.flight = null;
-    this.hotel = hotel;
-  }
-
-  public TripAggregate(Hotel hotel, Car car) {
-    this.car = car;
-    this.flight = null;
-    this.hotel = hotel;
-  }
-
-  public TripAggregate(Flight flight, TripAggregate previouse) {
-    this.car = previouse.car;
-    this.flight = flight;
-    this.hotel = previouse.hotel;
-    this.transactionId = previouse.transactionId;
-  }
-
-  public TripAggregate(Car car, TripAggregate previouse) {
-    this.car = car;
-    this.flight = previouse.flight;
-    this.hotel = previouse.hotel;
-    this.transactionId = previouse.transactionId;
-  }
-
-  public TripAggregate(Hotel hotel, TripAggregate previouse) {
-    this.car = previouse.car;
-    this.flight = previouse.flight;
-    this.hotel = hotel;
-    this.transactionId = previouse.transactionId;
   }
 
   public Car getCar() {
@@ -306,6 +255,16 @@ public class TripAggregate extends Saga {
     this.hotel = hotel;
   }
 
+  public TripAggregate updateTransactionId(String transactionId) {
+    this.transactionId = transactionId;
+    return this;
+  }
+
+  public TripAggregate updateStatus(SagaStatus status) {
+    this.status = status;
+    return this;
+  }
+
   public Trip getTrip() {
     return new Trip(
         null,
@@ -313,21 +272,41 @@ public class TripAggregate extends Saga {
         hotel != null ? hotel.getId() : null,
         flight != null ? flight.getId() : null,
         transactionId,
-        status);
+        status,
+        errorMessages);
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
   }
 
   @Override
   public String toString() {
-    return "TripAggregate{"
-        + "car="
+    return "{"
+        + " \"car\":"
         + car
-        + ", flight="
+        + ", \"flight\":"
         + flight
-        + ", hotel="
+        + ", \"hotel\":"
         + hotel
-        + ", status="
+        + ", \"trip\":"
+        + getTrip()
+        + ", \"transactionId\":\""
+        + transactionId
+        + "\""
+        + ", \"id\":\""
+        + id
+        + "\""
+        + ", \"status\":\""
         + status
-        + '}';
+        + "\""
+        + ", \"errorMessages\":"
+        + (errorMessages.isEmpty() ? "\"\"" : errorMessages)
+        + "}";
   }
 
   public static class TripBuilder {

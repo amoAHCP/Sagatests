@@ -1,0 +1,9 @@
+# https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
+spring:
+  data:
+    mongodb.uri: mongodb://mongo:27017/car
+    mongo.repositories.enabled: true
+
+
+
+

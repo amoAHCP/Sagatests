@@ -219,13 +219,17 @@ public class HotelCancelController {
 
   @Autowired private HotelRepository repository;
 
-  @PostMapping("/hotel/{transactionId}")
+  @DeleteMapping("/hotel/{transactionId}")
   public Mono<ResponseEntity<Void>> deleteHotelBooking(@PathVariable(value = "transactionId") String transactionId) {
-    return repository.findByTransactionId(transactionId)
-        .flatMap(existingFlight ->
-            repository.delete(existingFlight)
-                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)))
-        )
+    return repository
+        .findByTransactionId(transactionId)
+        .flatMap(
+            existingHotel -> {
+              System.out.println("delete existing hotel: "+existingHotel);
+              return repository
+                  .delete(existingHotel)
+                  .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)));
+            })
         .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
   }
 

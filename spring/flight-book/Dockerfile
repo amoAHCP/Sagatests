@@ -20,7 +20,7 @@ COPY --from=builder /opt/jre-minimal /opt/jre-minimal
 ENV LANG=C.UTF-8 \
     PATH=${PATH}:/opt/jre-minimal/bin
 WORKDIR /app
-COPY --from=mavenbuilder /app/target/tripAggregate-0.0.1-SNAPSHOT.jar ./
+COPY --from=mavenbuilder /app/target/flight-book-0.0.1-SNAPSHOT.jar ./
 ENV JVM_OPTS="-XX:+UseContainerSupport -XX:InitialRAMPercentage=80 -XX:MaxRAMPercentage=95"
 
-CMD java $JVM_OPTS -jar tripAggregate-0.0.1-SNAPSHOT.jar
+CMD java $JVM_OPTS -jar flight-book-0.0.1-SNAPSHOT.jar

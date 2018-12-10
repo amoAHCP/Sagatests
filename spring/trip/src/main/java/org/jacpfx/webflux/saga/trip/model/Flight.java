@@ -279,22 +279,17 @@ public class Flight extends Saga {
 
   @Override
   public String toString() {
-    return "{\"Flight\":"
-        + super.toString()
-        + ", \"id\":\""
-        + id
-        + "\""
-        + ", \"departureTime\":\""
-        + departureTime
-        + "\""
-        + ", \"flightCode\":\""
-        + flightCode
-        + "\""
-        + ", \"transactionId\":\""
-        + transactionId
-        + "\""
+    return "{"
+        + " \"id\":\"" + id + "\""
+        + ", \"departureTime\":\"" + departureTime + "\""
+        + ", \"flightCode\":\"" + flightCode + "\""
+        + ", \"transactionId\":\"" + transactionId + "\""
+        + ", \"status\":\"" + status + "\""
+        + ", \"errorMessages\":"
+        + (errorMessages.isEmpty() ? "\"\"" : errorMessages)
         + "}";
   }
+
 
   public static class FlightBuilder {
 

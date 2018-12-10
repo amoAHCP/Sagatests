@@ -209,13 +209,15 @@ import static java.net.http.HttpResponse.BodyHandlers.ofString;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
-import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpRequest.Builder;
 import java.net.http.HttpResponse;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+import org.jacpfx.webflux.saga.api.SagaFluentBuilder;
 import org.jacpfx.webflux.saga.api.SagaStatus;
 import org.jacpfx.webflux.saga.trip.model.Car;
 import org.jacpfx.webflux.saga.trip.model.Car.CarBuilder;
@@ -223,13 +225,14 @@ import org.jacpfx.webflux.saga.trip.model.Flight;
 import org.jacpfx.webflux.saga.trip.model.Flight.FlightBuilder;
 import org.jacpfx.webflux.saga.trip.model.Hotel;
 import org.jacpfx.webflux.saga.trip.model.Hotel.HotelBuilder;
-import org.jacpfx.webflux.saga.trip.model.Trip;
 import org.jacpfx.webflux.saga.trip.model.TripAggregate;
 import org.jacpfx.webflux.saga.trip.model.TripAggregate.TripBuilder;
 import org.jacpfx.webflux.saga.trip.repository.TripRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Service
 public class TripBookService {
@@ -252,9 +255,15 @@ public class TripBookService {
 
   @Autowired private TripRepository repository;
 
-  public void persist(Trip trip) {
-    System.out.println("persist: " + trip);
-    repository.insert(trip);
+  public Mono<TripAggregate> persist(TripAggregate trip) {
+
+    return repository.save(trip);
+
+  }
+
+
+  public Flux<TripAggregate> findByTransactionId(String transactionId){
+    return repository.findByTransactionId(transactionId);
   }
 
   public TripAggregate tripFlightUpdate(String flightResponse, String transactionId) {
@@ -325,11 +334,21 @@ public class TripBookService {
     Objects.requireNonNull(transactionId, "No transaction id provided");
     tripAggregate.setTransactionId(transactionId);
     final HttpRequest cancelRequest =
-        flightCancelConnectionBuilder.POST(BodyPublishers.ofString(transactionId)).build();
-    return handleCancelRequest(
-        cancelRequest,
-        () -> cancelFlightResponse(tripAggregate, SagaStatus.CANCEL_OK),
-        () -> cancelFlightResponse(tripAggregate, SagaStatus.CANCEL_FAIL));
+        getHttpDeleteRequest(transactionId, this.flightCancelConnectionBuilder);
+    final SagaFluentBuilder<TripAggregate> invoke =
+        SagaFluentBuilder.invoke(
+            cancelRequest,
+            transactionId,
+            (cancelResponse, transId) -> cancelFlightResponse(tripAggregate, SagaStatus.CANCEL_OK),
+            (cancelResponse, transId) ->
+                cancelFlightResponse(tripAggregate, SagaStatus.CANCEL_FAIL));
+    try {
+      return invoke.execute(httpDefaultClient).get();
+    } catch (InterruptedException | ExecutionException e) {
+      e.printStackTrace();
+      tripAggregate.addError(e.getMessage());
+      return tripAggregate;
+    }
   }
 
   private TripAggregate cancelFlightResponse(TripAggregate tripAggregate, SagaStatus cancelOk) {
@@ -348,8 +367,7 @@ public class TripBookService {
   public TripAggregate cancelHotel(TripAggregate tripAggregate, String transactionId) {
     Objects.requireNonNull(transactionId, "No transaction id provided");
     tripAggregate.setTransactionId(transactionId);
-    final HttpRequest cancelRequest =
-        hotelCancelConnectionBuilder.POST(BodyPublishers.ofString(transactionId)).build();
+    final HttpRequest cancelRequest = getHttpDeleteRequest(transactionId, hotelCancelConnectionBuilder);
     return handleCancelRequest(
         cancelRequest,
         () -> cancelHotelResponse(tripAggregate, SagaStatus.CANCEL_OK),
@@ -372,8 +390,7 @@ public class TripBookService {
   public TripAggregate cancelCar(TripAggregate tripAggregate, String transactionId) {
     Objects.requireNonNull(transactionId, "No transaction id provided");
     tripAggregate.setTransactionId(transactionId);
-    final HttpRequest cancelRequest =
-        carCancelConnectionBuilder.POST(BodyPublishers.ofString(transactionId)).build();
+    final HttpRequest cancelRequest = getHttpDeleteRequest(transactionId, carCancelConnectionBuilder);
     return handleCancelRequest(
         cancelRequest,
         () -> cancelCarResponse(tripAggregate, SagaStatus.CANCEL_OK),
@@ -396,17 +413,29 @@ public class TripBookService {
   // function, to allow to evaluate response
   private TripAggregate handleCancelRequest(
       HttpRequest cancelRequest, Supplier<TripAggregate> ok, Supplier<TripAggregate> fai) {
+
     try {
       final HttpResponse<String> cancelResponse = httpDefaultClient.send(cancelRequest, ofString());
       if (cancelResponse.statusCode() == 200) {
         return ok.get();
       } else {
-        return fai.get();
+        System.out.println(cancelResponse.body());
+        final TripAggregate tripAggregate = fai.get();
+        tripAggregate.addError(cancelResponse.body());
+        return tripAggregate;
       }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
-      return fai.get();
+      final TripAggregate tripAggregate = fai.get();
+      tripAggregate.addError(e.getMessage());
+      return tripAggregate;
     }
+  }
+
+  private HttpRequest getHttpDeleteRequest(String transactionId, Builder builder) {
+    final URI uri = builder.build().uri();
+    final String url = uri.toString() +"/"+ transactionId;
+    return builder.uri(URI.create(url)).DELETE().build();
   }
 
   private <T> T parse(String value, Class<T> calzz) {

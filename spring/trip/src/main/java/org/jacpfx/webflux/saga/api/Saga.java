@@ -205,13 +205,14 @@
 
 package org.jacpfx.webflux.saga.api;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class Saga {
+public abstract class Saga implements Serializable {
   public String transactionId;
   protected SagaStatus status;
-  private List<String> errorMessages = new ArrayList<>();
+  protected List<String> errorMessages = new ArrayList<>();
 
   public SagaStatus getStatus() {
     return status;
@@ -222,7 +223,7 @@ public abstract class Saga {
   }
 
   public void addError(String message) {
-    errorMessages.add(message);
+    errorMessages.add("\""+message+"\"");
   }
 
   public List<String> getErrorMessages() {
@@ -235,5 +236,14 @@ public abstract class Saga {
 
   public void setTransactionId(String transactionId) {
     this.transactionId = transactionId;
+  }
+
+  @Override
+  public String toString() {
+    return "{\"Saga\":{"
+        + "\"transactionId\":\"" + transactionId + "\""
+        + ", \"status\":\"" + status + "\""
+        + ", \"errorMessages\":" + errorMessages
+        + "}}";
   }
 }

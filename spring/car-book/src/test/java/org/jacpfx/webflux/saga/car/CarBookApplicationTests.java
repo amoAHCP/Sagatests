@@ -208,6 +208,7 @@ package org.jacpfx.webflux.saga.car;
 import java.util.Collections;
 import java.util.UUID;
 import org.assertj.core.api.Assertions;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -228,6 +229,7 @@ public class CarBookApplicationTests {
 	CarRepository repository;
 
 	@Test
+	@Ignore
 	public void testCreateCarBooking() {
 		Car car = new Car("Tesla Model S P100D", UUID.randomUUID().toString());
 
@@ -244,6 +246,7 @@ public class CarBookApplicationTests {
 	}
 
 	@Test
+	@Ignore
 	public void testGetSingleCarBooking() {
 		Car car = repository.save( new Car("Tesla Model S P100D",UUID.randomUUID().toString())).block();
 

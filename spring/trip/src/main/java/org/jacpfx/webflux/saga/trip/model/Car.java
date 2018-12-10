@@ -261,17 +261,13 @@ public class Car extends Saga {
 
   @Override
   public String toString() {
-    return "{\"Car\":"
-        + super.toString()
-        + ", \"id\":\""
-        + id
-        + "\""
-        + ", \"model\":\""
-        + model
-        + "\""
-        + ", \"transactionId\":\""
-        + transactionId
-        + "\""
+    return "{"
+        + " \"id\":\"" + id + "\""
+        + ", \"model\":\"" + model + "\""
+        + ", \"transactionId\":\"" + transactionId + "\""
+        + ", \"status\":\"" + status + "\""
+        + ", \"errorMessages\":"
+        + (errorMessages.isEmpty() ? "\"\"" : errorMessages)
         + "}";
   }
 

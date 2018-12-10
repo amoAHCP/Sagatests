@@ -219,14 +219,18 @@ public class FlightCancelController {
 
   @Autowired private FlightRepository repository;
 
-  @PostMapping("/flight/{transactionId}")
+  @DeleteMapping("/flight/{transactionId}")
   public Mono<ResponseEntity<Void>> deleteFlightBooking(@PathVariable(value = "transactionId") String transactionId) {
-    return repository.findByTransactionId(transactionId)
-        .flatMap(existingFlight ->
-            repository.delete(existingFlight)
-                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)))
-        )
-        .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    return repository
+        .findByTransactionId(transactionId)
+        .flatMap(
+            existingFlight -> {
+              System.out.println("delete existing flight: "+existingFlight);
+              return repository
+                  .delete(existingFlight)
+                  .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)));
+            })
+        .defaultIfEmpty(new ResponseEntity<>(HttpStatus.OK));
   }
 
 

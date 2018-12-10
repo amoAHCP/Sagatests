@@ -210,6 +210,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.hotel.Hotel;
 import org.jacpfx.webflux.saga.hotel.HotelRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -230,6 +231,7 @@ public class HotelBookApplicationTests {
 	HotelRepository repository;
 
 	@Test
+	@Ignore
 	public void testCreateHotel() {
 		Hotel hotel = new Hotel("SF","Hilton", UUID.randomUUID().toString());
 
@@ -246,6 +248,7 @@ public class HotelBookApplicationTests {
 	}
 
 	@Test
+	@Ignore
 	public void testGetSingleHotel() {
 		Hotel hotel = repository.save( new Hotel("SF","Hilton",UUID.randomUUID().toString())).block();
 

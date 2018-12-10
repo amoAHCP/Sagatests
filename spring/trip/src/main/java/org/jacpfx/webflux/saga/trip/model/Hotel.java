@@ -279,22 +279,15 @@ public class Hotel extends Saga {
 
   @Override
   public String toString() {
-    return "Hotel{"
-        + "id='"
-        + id
-        + '\''
-        + ", city='"
-        + city
-        + '\''
-        + ", hotel='"
-        + hotel
-        + '\''
-        + ", transactionId='"
-        + transactionId
-        + '\''
-        + ", status="
-        + status
-        + '}';
+    return "{"
+        + " \"id\":\"" + id + "\""
+        + ", \"city\":\"" + city + "\""
+        + ", \"hotel\":\"" + hotel + "\""
+        + ", \"transactionId\":\"" + transactionId + "\""
+        + ", \"status\":\"" + status + "\""
+        + ", \"errorMessages\":"
+        + (errorMessages.isEmpty() ? "\"\"" : errorMessages)
+        + "}";
   }
 
   public static class HotelBuilder {

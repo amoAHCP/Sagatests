@@ -210,6 +210,7 @@ import java.util.UUID;
 import org.assertj.core.api.Assertions;
 import org.jacpfx.webflux.saga.hotel.Hotel;
 import org.jacpfx.webflux.saga.hotel.HotelRepository;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -234,6 +235,7 @@ public class HotelCancelApplicationTests {
 
 
 	@Test
+	@Ignore
 	public void testDeleteSingleHotel() {
 		final String transactionId = UUID.randomUUID().toString();
 		Hotel hotel = repository.save( new Hotel("SF","Hilton", transactionId)).block();

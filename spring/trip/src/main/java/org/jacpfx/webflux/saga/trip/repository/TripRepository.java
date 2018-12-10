@@ -206,8 +206,17 @@
 package org.jacpfx.webflux.saga.trip.repository;
 
 import org.jacpfx.webflux.saga.trip.model.Trip;
+import org.jacpfx.webflux.saga.trip.model.TripAggregate;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
-public interface TripRepository extends ReactiveMongoRepository<Trip, String> {}
+public interface TripRepository extends ReactiveMongoRepository<TripAggregate, String> {
+
+
+  Flux<TripAggregate> findByTransactionId(String transactionId);
+
+
+}

@@ -219,14 +219,15 @@ public class CarCancelController {
 
   @Autowired private CarRepository repository;
 
-  @PostMapping("/car/{transactionId}")
-  public Mono<ResponseEntity<Void>> deleteCarBooking(@PathVariable(value = "transactionId") String transactionId) {
-    return repository.findByTransactionId(transactionId)
-        .flatMap(existingFlight ->
-            repository.delete(existingFlight)
-                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK)))
-        )
-        .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+  @DeleteMapping("/car/{transactionId}")
+  public Mono<ResponseEntity<Void>> deleteCarBooking(@PathVariable("transactionId") String transactionId) {
+    return repository
+        .findByTransactionId(transactionId)
+        .flatMap(
+            existingCar -> repository
+                .delete(existingCar)
+                .then(Mono.just(new ResponseEntity<Void>(HttpStatus.OK))))
+        .defaultIfEmpty(new ResponseEntity<>(HttpStatus.OK));
   }
 
 }

@@ -1,9 +1,9 @@
 # https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
 app:
-  name: tripp
+  name: car-book
 spring:
   profiles:
-    active: ${APP:"trip"}
+    active: ${APP}
   main:
     banner-mode: "off"
   jmx:
@@ -21,7 +21,7 @@ spring:
   thymeleaf:
     cache: false
   data:
-    mongodb.uri: mongodb://localhost:27017/trip
+    mongodb.uri: mongodb://localhost:27017/car
     mongo.repositories.enabled: true
 
 management:
@@ -31,16 +31,7 @@ management:
         include: "*"
 
 server:
-  port: 9000
+  port: 8060
 
 
-trip:
-  flight:
-    bookURL: http://localhost:8070/flight
-    cancelURL: http://localhost:8077/flight/
-  hotel:
-    bookURL: http://localhost:8090/hotel
-    cancelURL: http://localhost:8099/hotel/
-  car:
-    bookURL: http://localhost:8060/car
-    cancelURL: http://localhost:8066/car/
+

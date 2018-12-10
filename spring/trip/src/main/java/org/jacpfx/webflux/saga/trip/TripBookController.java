@@ -207,6 +207,7 @@ package org.jacpfx.webflux.saga.trip;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.annotations.ApiResponse;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -220,13 +221,18 @@ import org.jacpfx.webflux.saga.api.SagaStatus;
 import org.jacpfx.webflux.saga.trip.model.Car;
 import org.jacpfx.webflux.saga.trip.model.Flight;
 import org.jacpfx.webflux.saga.trip.model.Hotel;
+import org.jacpfx.webflux.saga.trip.model.Trip;
 import org.jacpfx.webflux.saga.trip.model.TripAggregate;
 import org.jacpfx.webflux.saga.trip.service.TripBookService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -250,29 +256,42 @@ public class TripBookController {
   private HttpClient httpClient;
 
   @PostMapping("/trip")
-  public Mono<? extends Saga> createBooking(@Valid @RequestBody TripAggregate tripAggregate) {
+  @ApiResponse(code = 200, message = "my Message", response = Trip.class)
+  public Mono<ResponseEntity<Trip>> createBooking(@Valid @RequestBody TripAggregate tripAggregate) {
     String transactionId = UUID.randomUUID().toString();
-    tripAggregate.setTransactionId(transactionId);
-    service.persist(tripAggregate.getTrip().updateStatus(SagaStatus.START));
+    tripAggregate = tripAggregate.updateTransactionId(transactionId).updateStatus(SagaStatus.START);
+    final Mono<ResponseEntity<Trip>> responseEntityMono =
+        service
+            .persist(tripAggregate)
+            .flatMap(trip -> Mono.fromFuture(createTrip(transactionId, trip)))
+            .flatMap(this::mapToResponseObject)
+            .onErrorReturn(ResponseEntity.badRequest().build());
+    return responseEntityMono;
+  }
+
+  @GetMapping("/trip/{transactionId}")
+  public Flux<TripAggregate> getTripByTransactionId(
+      @PathVariable("transactionId") String transactionId) {
+    return service.findByTransactionId(transactionId);
+  }
+
+  private CompletableFuture<? extends Saga> createTrip(String transactionId, TripAggregate trip) {
     HttpRequest flightRequest =
         flightBookConnectionBuilder
-            .POST(
-                BodyPublishers.ofString(asString(new Flight(tripAggregate.flight, transactionId))))
+            .POST(BodyPublishers.ofString(asString(new Flight(trip.flight, transactionId))))
             .build();
 
     HttpRequest hotelRequest =
         hotelBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Hotel(tripAggregate.hotel, transactionId))))
+            .POST(BodyPublishers.ofString(asString(new Hotel(trip.hotel, transactionId))))
             .build();
 
     HttpRequest carRequest =
         carBookConnectionBuilder
-            .POST(BodyPublishers.ofString(asString(new Car(tripAggregate.car, transactionId))))
+            .POST(BodyPublishers.ofString(asString(new Car(trip.car, transactionId))))
             .build();
 
-    return Mono.fromFuture(
-            tripInvocation(transactionId, tripAggregate, flightRequest, hotelRequest, carRequest))
-        .doOnSuccess(aggregate -> service.persist(TripAggregate.class.cast(aggregate).getTrip()));
+    return tripInvocation(transactionId, trip, flightRequest, hotelRequest, carRequest);
   }
 
   public CompletableFuture<? extends Saga> tripInvocation(
@@ -295,6 +314,22 @@ public class TripBookController {
             service::tripCarUpdate,
             (exception, transId) -> service.rollBackCarBooking(tripAggregate, transId))
         .execute(httpClient);
+  }
+
+  private Mono<TripAggregate> persistFinalState(Saga aggregate) {
+    if (aggregate instanceof TripAggregate) {
+      return service.persist(TripAggregate.class.cast(aggregate));
+    } else {
+      // TODO persist "hard" Errors, only occurs when RuntimeExceptions in API
+      // This will fail ;-)
+      return service.persist(TripAggregate.class.cast(aggregate));
+    }
+  }
+
+  private Mono<ResponseEntity<Trip>> mapToResponseObject(Saga saga) {
+    return persistFinalState(saga)
+        .map(trip -> ResponseEntity.ok(trip.getTrip()))
+        .onErrorReturn(ResponseEntity.badRequest().build());
   }
 
   private String asString(Object object) {

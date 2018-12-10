@@ -1,0 +1,18 @@
+# https://docs.spring.io/spring-boot/docs/current/reference/html/common-application-properties.html
+spring:
+  data:
+    mongodb.uri: mongodb://mongo:27017/trip
+    mongo.repositories.enabled: true
+
+
+
+trip:
+  flight:
+    bookURL: http://flight-book:8070/flight
+    cancelURL: http://flight-cancel:8077/flight
+  hotel:
+    bookURL: http://hotel-book:8090/hotel
+    cancelURL: http://hotel-cancel:8099/hotel
+  car:
+    bookURL: http://car-book:8060/car
+    cancelURL: http://car-cancel:8066/car

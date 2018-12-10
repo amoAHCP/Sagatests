@@ -206,17 +206,16 @@
 package org.jacpfx.webflux.saga.trip.model;
 
 import java.io.Serializable;
+import java.util.List;
+import org.jacpfx.webflux.saga.api.Saga;
 import org.jacpfx.webflux.saga.api.SagaStatus;
 
-public class Trip implements Serializable {
+public class Trip extends Saga {
 
-  private String id;
   private String userId;
   private String carBookingId;
   private String hotelBookingId;
   private String flightBookingId;
-  private String transactionId;
-  private SagaStatus status;
 
   public Trip(
       String userId,
@@ -234,30 +233,25 @@ public class Trip implements Serializable {
   }
 
   public Trip(
-      String id,
       String userId,
       String carBookingId,
       String hotelBookingId,
       String flightBookingId,
       String transactionId,
-      SagaStatus status) {
+      SagaStatus status,
+      List<String> errorMessages) {
     this.userId = userId;
     this.carBookingId = carBookingId;
     this.hotelBookingId = hotelBookingId;
     this.flightBookingId = flightBookingId;
     this.transactionId = transactionId;
     this.status = status;
+    this.errorMessages = errorMessages;
   }
 
   public Trip() {}
 
-  public String getId() {
-    return id;
-  }
 
-  public void setId(String id) {
-    this.id = id;
-  }
 
   public String getUserId() {
     return userId;
@@ -291,34 +285,16 @@ public class Trip implements Serializable {
     this.flightBookingId = flightBookingId;
   }
 
-  public String getTransactionId() {
-    return transactionId;
-  }
-
-  public void setTransactionId(String transactionId) {
-    this.transactionId = transactionId;
-  }
-
-  public SagaStatus getStatus() {
-    return status;
-  }
-
-  public void setStatus(SagaStatus status) {
-    this.status = status;
-  }
 
   public Trip updateStatus(SagaStatus status) {
     return new Trip(
-        id, userId, carBookingId, hotelBookingId, flightBookingId, transactionId, status);
+        userId, carBookingId, hotelBookingId, flightBookingId, transactionId, status);
   }
 
   @Override
   public String toString() {
-    return "{\"Trip\":{"
-        + "\"id\":\""
-        + id
-        + "\""
-        + ", \"userId\":\""
+    return "{"
+        + "\"userId\":\""
         + userId
         + "\""
         + ", \"carBookingId\":\""
