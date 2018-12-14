@@ -246,7 +246,7 @@ public class Trip extends Saga {
     this.flightBookingId = flightBookingId;
     this.transactionId = transactionId;
     this.status = status;
-    this.errorMessages = errorMessages;
+    this.errorMessages.addAll(errorMessages);
   }
 
   public Trip() {}

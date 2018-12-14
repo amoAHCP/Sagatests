@@ -208,6 +208,7 @@ package org.jacpfx.webflux.saga.trip;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.ApiResponse;
+import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -237,17 +238,6 @@ import reactor.core.publisher.Mono;
 
 @RestController
 public class TripBookController {
-  @Qualifier("carBookConnectionBuilder")
-  @Autowired
-  private Builder carBookConnectionBuilder;
-
-  @Qualifier("hotelBookConnectionBuilder")
-  @Autowired
-  private Builder hotelBookConnectionBuilder;
-
-  @Qualifier("flightBookConnectionBuilder")
-  @Autowired
-  private Builder flightBookConnectionBuilder;
 
   @Autowired private TripBookService service;
 
@@ -291,28 +281,22 @@ public class TripBookController {
             .POST(BodyPublishers.ofString(asString(new Car(trip.car, transactionId))))
             .build();
 
-    return tripInvocation(transactionId, trip, flightRequest, hotelRequest, carRequest);
+    return tripInvocation(trip, flightRequest, hotelRequest, carRequest);
   }
 
   public CompletableFuture<? extends Saga> tripInvocation(
-      String transactionId,
       TripAggregate tripAggregate,
       HttpRequest flightRequest,
       HttpRequest hotelRequest,
       HttpRequest carRequest) {
+
     return SagaFluentBuilder.invoke(
-            flightRequest,
-            transactionId,
-            service::tripFlightUpdate,
-            (exception, transId) -> service.cancelFligh(tripAggregate, transId))
-        .andThan(
-            hotelRequest,
-            service::tripHotelUpdate,
-            (exception, transId) -> service.rollBackHotelBooking(tripAggregate, transId))
-        .andThan(
-            carRequest,
-            service::tripCarUpdate,
-            (exception, transId) -> service.rollBackCarBooking(tripAggregate, transId))
+            flightRequest, // default request
+            tripAggregate, // the aggregate to reduce all steps
+            service::tripFlightUpdate, // do on success
+            service::rollBackFlight) // do on failure
+        .andThan(hotelRequest, service::tripHotelUpdate, service::rollBackHotelBooking)
+        .andThan(carRequest, service::tripCarUpdate, service::rollBackCarBooking)
         .execute(httpClient);
   }
 
@@ -340,4 +324,18 @@ public class TripBookController {
     }
     return "";
   }
+
+  @Qualifier("carBookConnectionBuilder")
+  @Autowired
+  private Builder carBookConnectionBuilder;
+
+  @Qualifier("hotelBookConnectionBuilder")
+  @Autowired
+  private Builder hotelBookConnectionBuilder;
+
+  @Qualifier("flightBookConnectionBuilder")
+  @Autowired
+  private Builder flightBookConnectionBuilder;
+
+
 }

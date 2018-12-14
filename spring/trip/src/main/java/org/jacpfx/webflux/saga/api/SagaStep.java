@@ -211,36 +211,45 @@ import java.util.function.BiFunction;
 public class SagaStep<T extends Saga> {
 
   private final HttpRequest request;
-  private final String transactionId;
+  private final HttpRequest rollbackRequest;
+  private final T saga;
   private final BiFunction<String, T, T> combine;
   private final BiFunction<String, String, T> combineFirst;
-  private final BiFunction<Throwable, String, T> rollback;
+  private final BiFunction<Throwable, T, T> rollback;
 
   public SagaStep(
       HttpRequest request,
+      HttpRequest rollbackRequest,
       BiFunction<String, T, T> combine,
-      BiFunction<Throwable, String, T> rollback) {
+      BiFunction<Throwable, T, T> rollback) {
     this.request = request;
+    this.rollbackRequest = rollbackRequest;
     this.combine = combine;
     this.rollback = rollback;
     this.combineFirst = null;
-    this.transactionId = null;
+    this.saga = null;
   }
 
   public SagaStep(
       HttpRequest request,
-      String transactionId,
+      HttpRequest rollbackRequest,
+      T saga,
       BiFunction<String, String, T> combineFirst,
-      BiFunction<Throwable, String, T> rollback) {
+      BiFunction<Throwable, T, T> rollback) {
     this.request = request;
+    this.rollbackRequest = rollbackRequest;
     this.combine = null;
     this.rollback = rollback;
     this.combineFirst = combineFirst;
-    this.transactionId = transactionId;
+    this.saga = saga;
   }
 
   public HttpRequest getRequest() {
     return request;
+  }
+
+  public HttpRequest getRollbackRequest() {
+    return rollbackRequest;
   }
 
   public BiFunction<String, String, T> getCombineFirst() {
@@ -251,11 +260,11 @@ public class SagaStep<T extends Saga> {
     return combine;
   }
 
-  public BiFunction<Throwable, String, T> getRollback() {
+  public BiFunction<Throwable, T, T> getRollback() {
     return rollback;
   }
 
-  public String getTransactionId() {
-    return transactionId;
+  public T getSaga() {
+    return saga;
   }
 }
