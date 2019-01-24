@@ -479,11 +479,11 @@ public class TripAggregateRESTTest3 {
             "356456",
             (response, transId) -> tripFlightUpdate(transactionId, response),
             (exception, transId) -> rollBackFlight(tripAggregate))
-        .andThan(
+        .andThen(
             hotelRequest,
             (hotelResponse, flight) -> tripHotelUpdate(flight, hotelResponse),
             (exception, transId) -> rollBackHotelBooking(tripAggregate))
-        .andThan(
+        .andThen(
             carRequest,
             (carResponse, hotel) -> tripCarUpdate(hotel, carResponse),
             (exception, transId) -> rollBackCarBooking(tripAggregate))

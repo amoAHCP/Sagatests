@@ -1,4 +1,9 @@
 # First stage: Copy the project and run mvn clean install in Docker to build the project against Java 9
+FROM maven:3.6.0-jdk-11 AS mavenbuilder
+ADD . /app
+WORKDIR /app
+RUN mvn clean install
+
 FROM openjdk:12-ea-jdk-alpine3.8 as builder
 RUN jlink \
     --add-modules java.sql,java.naming,java.net.http,java.management,java.instrument,java.security.jgss,java.desktop,jdk.unsupported \
@@ -9,12 +14,6 @@ RUN jlink \
     --no-man-pages \
     --output /opt/jre-minimal
 
-RUN /opt/jre-minimal/bin/java -Xshare:dump
-
-FROM maven:3.6.0-jdk-11 AS mavenbuilder
-ADD . /app
-WORKDIR /app
-RUN mvn clean install
 
 FROM alpine:3.8
 COPY --from=builder /opt/jre-minimal /opt/jre-minimal

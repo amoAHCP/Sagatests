@@ -217,12 +217,12 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2WebFlux;
 @EnableSwagger2WebFlux
 public class SwaggerConfig {
 
-  @Bean
-  public Docket api() {
-    return new Docket(DocumentationType.SWAGGER_2)
-        .select()
-        .apis(RequestHandlerSelectors.any())
-        .paths(PathSelectors.any())
-        .build();
-  }
+    @Bean
+    public Docket api() {
+        return new Docket(DocumentationType.SWAGGER_2)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("org.jacpfx.webflux.saga.trip"))
+                .paths(PathSelectors.any())
+                .build();
+    }
 }

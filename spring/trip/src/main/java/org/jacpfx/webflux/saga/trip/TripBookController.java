@@ -208,7 +208,7 @@ package org.jacpfx.webflux.saga.trip;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.annotations.ApiResponse;
-import java.net.URI;
+
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
@@ -295,8 +295,8 @@ public class TripBookController {
             tripAggregate, // the aggregate to reduce all steps
             service::tripFlightUpdate, // do on success
             service::rollBackFlight) // do on failure
-        .andThan(hotelRequest, service::tripHotelUpdate, service::rollBackHotelBooking)
-        .andThan(carRequest, service::tripCarUpdate, service::rollBackCarBooking)
+        .andThen(hotelRequest, service::tripHotelUpdate, service::rollBackHotelBooking)
+        .andThen(carRequest, service::tripCarUpdate, service::rollBackCarBooking)
         .execute(httpClient);
   }
 

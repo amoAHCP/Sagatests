@@ -240,7 +240,7 @@ public class SagaFluentBuilder<T extends Saga> {
                 null, saga, combine, rollback)));
   }
 
-  public SagaFluentBuilder<T> andThan(
+  public SagaFluentBuilder<T> andThen(
       HttpRequest request,
       // HttpRequest rollbackRequest,
       BiFunction<String, T, T> combine,
